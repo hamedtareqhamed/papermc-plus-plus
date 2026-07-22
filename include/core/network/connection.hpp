@@ -286,6 +286,7 @@ private:
                 using namespace papermc::core::protocol::generated;
                 
                 for (const auto& reg : papermc::core::protocol::generated::all_registries) {
+                    spdlog::info("[REGISTRY OUT] Sending registry: {} with {} entries", reg.name, reg.entries.size());
                     send_packet(protocol::RegistryDataPacket{
                         .registry_id = reg.name,
                         .entry_ids = reg.entries,
