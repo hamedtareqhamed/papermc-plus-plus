@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(papermc_core VERSION 1.0.0 LANGUAGES C CXX)
+project(papermc_plus_plus VERSION 0.1.0 LANGUAGES C CXX)
 
 # Force C++23 standard
 set(CMAKE_CXX_STANDARD 23)
@@ -40,11 +40,24 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# 4. Sol2 (Lua C++ Binding framework)
+# 4. Embedded Lua 5.4 Library
+FetchContent_Declare(
+    lua_src
+    GIT_REPOSITORY https://github.com/lua/lua.git
+    GIT_TAG        v5.4.6
+)
+FetchContent_MakeAvailable(lua_src)
+
+file(GLOB LUA_SOURCES "${lua_src_SOURCE_DIR}/*.c")
+list(REMOVE_ITEM LUA_SOURCES "${lua_src_SOURCE_DIR}/lua.c" "${lua_src_SOURCE_DIR}/luac.c" "${lua_src_SOURCE_DIR}/onelua.c")
+add_library(lua STATIC ${LUA_SOURCES})
+target_include_directories(lua PUBLIC ${lua_src_SOURCE_DIR})
+
+# 5. Sol2 (Lua C++ Binding framework)
 FetchContent_Declare(
     sol2
-    GIT_REPOSITORY https://github.com/TheLartians/Sol2.git
-    GIT_TAG        v3.3.0
+    GIT_REPOSITORY https://github.com/ThePhD/sol2.git
+    GIT_TAG        main
 )
 FetchContent_MakeAvailable(sol2)
 
@@ -52,6 +65,7 @@ FetchContent_MakeAvailable(sol2)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${asio_SOURCE_DIR}/asio/include
+    ${lua_src_SOURCE_DIR}
 )
 
 # Project Core Sources
@@ -62,17 +76,25 @@ set(CORE_SOURCES
     src/network/server.cpp
 )
 
-add_executable(papermc_core ${CORE_SOURCES})
+add_executable(papermc_plus_plus ${CORE_SOURCES})
 
 # Target Definitions & Links
-target_compile_definitions(papermc_core PRIVATE ASIO_STANDALONE)
+target_compile_definitions(papermc_plus_plus PRIVATE ASIO_STANDALONE)
 
-target_link_libraries(papermc_core PRIVATE
+target_link_libraries(papermc_plus_plus PRIVATE
     spdlog::spdlog
     nlohmann_json::nlohmann_json
+    lua
     sol2
 )
 
 # Threading library
 find_package(Threads REQUIRED)
-target_link_libraries(papermc_core PRIVATE Threads::Threads)
+target_link_libraries(papermc_plus_plus PRIVATE Threads::Threads)
+
+# Enable Testing
+enable_testing()
+add_executable(unit_tests tests/test_protocol.cpp src/protocol/buffer.cpp src/world/chunk.cpp)
+target_compile_definitions(unit_tests PRIVATE ASIO_STANDALONE)
+target_link_libraries(unit_tests PRIVATE spdlog::spdlog lua Threads::Threads)
+add_test(NAME UnitTests COMMAND unit_tests)

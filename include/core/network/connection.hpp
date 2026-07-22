@@ -18,7 +18,8 @@ public:
         : socket_(std::move(socket)) {}
 
     void start() {
-        spdlog::info("Client connected from {}", socket_.remote_endpoint().address().to_string());
+        std::string remote_addr = socket_.remote_endpoint().address().to_string();
+        spdlog::info("Client connected from {}", remote_addr);
         do_read_packet_length();
     }
 

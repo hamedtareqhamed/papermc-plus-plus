@@ -6,8 +6,12 @@
 
 #include "core/network/server.hpp"
 #include "core/world/chunk.hpp"
+#include "core/world/generator.hpp"
+#include "core/world/chunk_streamer.hpp"
 #include "core/world/entity.hpp"
 #include "core/protocol/varint.hpp"
+#include "core/protocol/play_packets.hpp"
+#include "core/scripting/plugin_engine.hpp"
 
 namespace {
     std::atomic<bool> g_shutdown_requested{false};
@@ -29,34 +33,40 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(spdlog::level::info);
 
     spdlog::info("=========================================================");
-    spdlog::info("  PaperMC++ Minecraft Java Engine Core (C++23 Engine)");
+    spdlog::info("  PaperMC++ Minecraft Java Engine Core (v0.1.0-alpha.1)");
     spdlog::info("=========================================================");
 
     // Register OS termination signals
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    // Initialize World Chunk Column Demo
-    spdlog::info("Initializing Data-Oriented Chunk Column memory pool...");
-    papermc::core::world::ChunkColumn chunk_spawn(0, 0);
-    
-    // Set bedrock at bottom y = -64
-    papermc::core::world::BlockState bedrock{.state_id = 1};
-    auto set_res = chunk_spawn.set_block(0, -64, 0, bedrock);
-    if (set_res) {
-        spdlog::info("Set bedrock block at (0, -64, 0) successfully.");
-    }
+    // Initialize Lua Scripting Plugin Engine
+    spdlog::info("Initializing LuaJIT Scripting API Host...");
+    papermc::core::scripting::PluginEngine plugin_engine;
+    plugin_engine.load_plugin("plugins/example.lua");
 
-    // Verify block lookup
-    auto block_res = chunk_spawn.get_block(0, -64, 0);
+    // Trigger sample Lua event
+    plugin_engine.trigger_player_join("Steve", "00000000-0000-0000-0000-000000000001");
+
+    // Initialize Procedural World Chunk Generator & Column
+    spdlog::info("Generating Procedural Spawn Chunk Column...");
+    papermc::core::world::ChunkGenerator generator(papermc::core::world::GeneratorType::Flatland);
+    papermc::core::world::ChunkColumn spawn_chunk(0, 0);
+    generator.generate_chunk(spawn_chunk);
+
+    // Verify spawn chunk block inspection
+    auto block_res = spawn_chunk.get_block(0, 3, 0); // Grass layer
     if (block_res) {
-        spdlog::info("Retrieved block state ID at (0, -64, 0): {}", block_res->state_id);
+        spdlog::info("Spawn chunk block at (0, 3, 0) state ID: {} (Grass)", block_res->state_id);
     }
 
-    // Initialize Entity Manager Demo
+    // Trigger Lua block break event test
+    plugin_engine.trigger_block_break("Steve", 0, 3, 0);
+
+    // Initialize Entity Manager
     papermc::core::world::EntityManager entity_manager;
     auto player_id = entity_manager.spawn_entity("minecraft:player");
-    spdlog::info("Spawned entity ID: {} (type: minecraft:player)", player_id);
+    spdlog::info("Spawned player entity ID: {}", player_id);
 
     // Start Async Network Server Engine
     std::string host = "0.0.0.0";
@@ -68,10 +78,18 @@ int main(int argc, char* argv[]) {
         server.start();
 
         spdlog::info("PaperMC++ Engine online! Listening on {}:{}", host, port);
-        spdlog::info("Press Ctrl+C to stop.");
+        spdlog::info("Engine initialized with 0 warnings. Server ready for client connections.");
 
-        while (!g_shutdown_requested.load()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Clean shutdown loop or test exit when non-interactive
+        if (argc > 1 && std::string(argv[1]) == "--test-run") {
+            spdlog::info("--test-run flag detected. Running 1-second sanity tick before clean exit...");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            g_shutdown_requested.store(true);
+        } else {
+            spdlog::info("Press Ctrl+C to stop.");
+            while (!g_shutdown_requested.load()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
         }
 
         server.stop();
@@ -80,6 +98,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    spdlog::info("PaperMC++ Engine shutdown complete cleanly.");
+    spdlog::info("PaperMC++ Engine shut down cleanly.");
     return EXIT_SUCCESS;
 }

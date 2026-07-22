@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include <memory>
+#include <span>
 #include <shared_mutex>
 #include <expected>
 #include <string_view>
