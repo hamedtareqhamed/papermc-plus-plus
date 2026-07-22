@@ -248,15 +248,8 @@ inline void write_overworld_dimension_nbt(ByteBuf &buf) {
       light_level_name.size()));
 
   write_nbt_string(buf, "type", "minecraft:uniform");
-
-  buf.write_u8(0x0A); // TAG_Compound لـ value
-  std::string_view val_name2 = "value";
-  buf.write_u16(static_cast<uint16_t>(val_name2.size()));
-  buf.write_bytes(std::span<const std::byte>(
-      reinterpret_cast<const std::byte *>(val_name2.data()), val_name2.size()));
   write_nbt_int(buf, "min_inclusive", 0);
   write_nbt_int(buf, "max_inclusive", 7);
-  buf.write_u8(0x00); // END value
 
   buf.write_u8(0x00); // END monster_spawn_light_level
 
