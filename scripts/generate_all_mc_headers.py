@@ -28,6 +28,14 @@ def flatten_tags(tag_dict, tag_name, resolved, resolving):
     resolving.remove(tag_name)
     return result
 
+import re
+
+VALID_ID_PATTERN = re.compile(r'^[a-z0-9_.-]+$')
+
+def is_valid_entry(entry_name):
+    path = entry_name.split(':', 1)[-1]
+    return bool(VALID_ID_PATTERN.match(path))
+
 def generate_headers():
     reports_dir = '/home/hamed/projectes/papermc++/mc/generated/reports'
     tags_dir = '/home/hamed/projectes/papermc++/mc/generated/data/minecraft/tags'
@@ -47,14 +55,6 @@ def generate_headers():
             for k, v in dp['registries'].items():
                 if k not in all_registries:
                     all_registries[k] = v
-
-import re
-
-VALID_ID_PATTERN = re.compile(r'^[a-z0-9_.-]+$')
-
-def is_valid_entry(entry_name):
-    path = entry_name.split(':', 1)[-1]
-    return bool(VALID_ID_PATTERN.match(path))
 
     registry_id_map = {}
     
