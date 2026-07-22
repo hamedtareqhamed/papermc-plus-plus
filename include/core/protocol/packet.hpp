@@ -300,8 +300,8 @@ struct UpdateTagsPacket {
   void serialize(ByteBuf &buf) const {
     buf.write_varint(0x0D); // Clientbound 0x0D in CONFIGURATION state
 
-    // 3 Tagged Registries: minecraft:damage_type, minecraft:timeline & minecraft:block
-    buf.write_varint(3);
+    // 4 Tagged Registries: minecraft:damage_type, minecraft:timeline, minecraft:block, minecraft:banner_pattern
+    buf.write_varint(4);
 
     // Registry 1: minecraft:damage_type
     buf.write_string("minecraft:damage_type");
@@ -349,6 +349,29 @@ struct UpdateTagsPacket {
 
     buf.write_varint(static_cast<int32_t>(block_tags.size()));
     for (const auto &[tag_name, entries] : block_tags) {
+      buf.write_string(tag_name);
+      buf.write_varint(static_cast<int32_t>(entries.size()));
+      for (int32_t entry_id : entries) {
+        buf.write_varint(entry_id);
+      }
+    }
+
+    // Registry 4: minecraft:banner_pattern
+    buf.write_string("minecraft:banner_pattern");
+    std::vector<std::pair<std::string, std::vector<int32_t>>> banner_pattern_tags = {
+        {"minecraft:pattern_item/flower", {38}},
+        {"minecraft:pattern_item/creeper", {36}},
+        {"minecraft:pattern_item/skull", {37}},
+        {"minecraft:pattern_item/mojang", {39}},
+        {"minecraft:pattern_item/globe", {35}},
+        {"minecraft:pattern_item/piglin", {40}},
+        {"minecraft:pattern_item/flow", {41}},
+        {"minecraft:pattern_item/guster", {42}},
+        {"minecraft:pattern_item/field_masoned", {34}},
+        {"minecraft:pattern_item/bordure_indented", {31}}};
+
+    buf.write_varint(static_cast<int32_t>(banner_pattern_tags.size()));
+    for (const auto &[tag_name, entries] : banner_pattern_tags) {
       buf.write_string(tag_name);
       buf.write_varint(static_cast<int32_t>(entries.size()));
       for (int32_t entry_id : entries) {

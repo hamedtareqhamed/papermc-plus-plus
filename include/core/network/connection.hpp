@@ -303,6 +303,7 @@ private:
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_material", .entry_ids = trim_material_entries, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_pattern", .entry_ids = trim_pattern_entries, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:jukebox_song", .entry_ids = jukebox_song_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:banner_pattern", .entry_ids = banner_pattern_entries, .include_overworld_nbt = false});
 
                 // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;
