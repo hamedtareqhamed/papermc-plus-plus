@@ -89,9 +89,9 @@ def generate_headers():
         "minecraft:banner_pattern": ["minecraft:base", "minecraft:square_bottom_left", "minecraft:square_bottom_right", "minecraft:square_top_left", "minecraft:square_top_right", "minecraft:stripe_bottom", "minecraft:stripe_top", "minecraft:stripe_left", "minecraft:stripe_right", "minecraft:stripe_center", "minecraft:stripe_middle", "minecraft:stripe_downright", "minecraft:stripe_downleft", "minecraft:small_stripes", "minecraft:cross", "minecraft:straight_cross", "minecraft:triangle_bottom", "minecraft:triangle_top", "minecraft:triangles_bottom", "minecraft:triangles_top", "minecraft:diagonal_left", "minecraft:diagonal_right", "minecraft:diagonal_up_left", "minecraft:diagonal_up_right", "minecraft:circle", "minecraft:rhombus", "minecraft:half_vertical", "minecraft:half_horizontal", "minecraft:half_vertical_right", "minecraft:half_horizontal_bottom", "minecraft:border", "minecraft:curly_border", "minecraft:gradient", "minecraft:gradient_up", "minecraft:bricks", "minecraft:globe", "minecraft:creeper", "minecraft:skull", "minecraft:flower", "minecraft:mojang", "minecraft:piglin", "minecraft:flow", "minecraft:guster"]
     }
 
-    # Populate fallback entries for empty registries
+    # Populate fallback entries for registries with missing/incomplete entries
     for reg_name, fallback_list in FALLBACK_ENTRIES.items():
-        if reg_name not in registry_id_map or len(registry_id_map[reg_name]) == 0:
+        if reg_name not in registry_id_map or len(registry_id_map[reg_name]) < len(fallback_list):
             registry_id_map[reg_name] = {entry: i for i, entry in enumerate(fallback_list)}
 
     # 1. Generate registries.hpp
