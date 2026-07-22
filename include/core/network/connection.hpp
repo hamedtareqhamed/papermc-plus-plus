@@ -318,6 +318,11 @@ private:
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = {"minecraft:pale"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:zombie_nautilus_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
 
                 // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;
