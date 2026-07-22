@@ -16,12 +16,28 @@ namespace papermc::core::protocol::generated {
             {"minecraft:lava", {4, 3}},
             {"minecraft:supports_frogspawn", {2}}
         }},
+        {"minecraft:banner_pattern", {
+            {"minecraft:no_item_required", {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 22, 21, 24, 25, 26, 27, 28, 29, 30, 32, 33}},
+            {"minecraft:pattern_item/bordure_indented", {31}},
+            {"minecraft:pattern_item/mojang", {39}},
+            {"minecraft:pattern_item/flow", {41}},
+            {"minecraft:pattern_item/piglin", {40}},
+            {"minecraft:pattern_item/flower", {38}},
+            {"minecraft:pattern_item/globe", {35}},
+            {"minecraft:pattern_item/creeper", {36}},
+            {"minecraft:pattern_item/skull", {37}},
+            {"minecraft:pattern_item/field_masoned", {34}},
+            {"minecraft:pattern_item/guster", {42}}
+        }},
         {"minecraft:game_event", {
             {"minecraft:allay_can_listen", {34}},
             {"minecraft:ignore_vibrations_sneaking", {27, 37, 42, 43, 30, 29}},
             {"minecraft:vibrations", {1, 2, 3, 5, 6, 7, 8, 0, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 33, 34, 35, 36, 37, 39, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 24}},
             {"minecraft:shrieker_can_listen", {38}},
             {"minecraft:warden_can_listen", {1, 2, 3, 5, 6, 7, 8, 0, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 33, 34, 35, 36, 37, 39, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 40, 38}}
+        }},
+        {"minecraft:painting_variant", {
+            {"minecraft:placeable", {0}}
         }},
         {"minecraft:potion", {
             {"minecraft:tradeable", {42, 44, 45, 43, 4, 5, 6, 7, 11, 12, 8, 9, 10, 16, 17, 18, 19, 20, 21, 13, 14, 15, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41}}
@@ -301,6 +317,11 @@ namespace papermc::core::protocol::generated {
             {"minecraft:immune_to_oozing", {117}},
             {"minecraft:ignores_poison_and_regen", {115, 128, 147, 116, 16, 97, 152, 20, 151, 154, 155, 150, 38, 67, 153, 146, 99}},
             {"minecraft:not_affected_by_geysers", {43}}
+        }},
+        {"minecraft:instrument", {
+            {"minecraft:regular_goat_horns", {0, 1, 2, 3}},
+            {"minecraft:screaming_goat_horns", {4, 5, 6, 7}},
+            {"minecraft:goat_horns", {0, 1, 2, 3, 4, 5, 6, 7}}
         }},
         {"minecraft:point_of_interest_type", {
             {"minecraft:bee_home", {15, 16}},
