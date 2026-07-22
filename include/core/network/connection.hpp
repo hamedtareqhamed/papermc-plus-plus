@@ -310,13 +310,13 @@ private:
                 };
                 send_packet(biome_registry);
 
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_variant", .entry_ids = {"minecraft:tabby"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:frog_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_variant", .entry_ids = {"minecraft:all_black", "minecraft:black", "minecraft:british_shorthair", "minecraft:calico", "minecraft:jellie", "minecraft:persian", "minecraft:ragdoll", "minecraft:red", "minecraft:siamese", "minecraft:tabby", "minecraft:white"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:frog_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:painting_variant", .entry_ids = {"minecraft:kebab"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = {"minecraft:pale"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = {"minecraft:ashen", "minecraft:black", "minecraft:chestnut", "minecraft:pale", "minecraft:rusty", "minecraft:snowy", "minecraft:spotted", "minecraft:striped", "minecraft:woods"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:zombie_nautilus_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
