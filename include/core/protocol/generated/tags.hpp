@@ -269,10 +269,10 @@ namespace papermc::core::protocol::generated {
             {"minecraft:enchantable/armor", {985, 989, 993, 1005, 997, 1001, 1009, 984, 988, 992, 1004, 996, 1000, 1008, 983, 987, 991, 1003, 995, 999, 1007, 982, 986, 990, 1002, 994, 998, 1006, 915}}
         }},
         {"minecraft:timeline", {
-            {"minecraft:universal", {}},
-            {"minecraft:in_nether", {}},
-            {"minecraft:in_end", {}},
-            {"minecraft:in_overworld", {}}
+            {"minecraft:universal", {3}},
+            {"minecraft:in_nether", {3}},
+            {"minecraft:in_end", {3}},
+            {"minecraft:in_overworld", {3, 0, 1, 2}}
         }},
         {"minecraft:entity_type", {
             {"minecraft:accepts_iron_golem_gift", {28}},

@@ -147,7 +147,10 @@ namespace papermc::core::protocol::generated {
             "minecraft:warm",
         }, false},
         {"minecraft:timeline", {
-            "minecraft:overworld",
+            "minecraft:day",
+            "minecraft:moon",
+            "minecraft:early_game",
+            "minecraft:villager_schedule",
         }, false},
         {"minecraft:trim_material", {
             "minecraft:quartz",
@@ -198,6 +201,7 @@ namespace papermc::core::protocol::generated {
         }, false},
         {"minecraft:world_clock", {
             "minecraft:overworld",
+            "minecraft:the_end",
         }, false},
         {"minecraft:zombie_nautilus_variant", {
             "minecraft:temperate",
