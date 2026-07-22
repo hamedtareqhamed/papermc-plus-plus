@@ -2,7 +2,7 @@
 #define PAPERMC_CORE_PROTOCOL_PACKET_HPP
 
 #include "core/protocol/buffer.hpp"
-#include "core/protocol/generated_registries.hpp"
+#include "core/protocol/generated/tags.hpp"
 #include <array>
 #include <bit>
 #include <cstdint>

@@ -55,12 +55,20 @@ set(CORE_SOURCES
 )
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated_registries.hpp
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codegen_registries.py
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codegen_registries.py
-    COMMENT "Generating registry headers from JSON..."
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/registries.hpp
+           ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/tags.hpp
+           ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/packets.hpp
+           ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/blocks.hpp
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_all_mc_headers.py
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_all_mc_headers.py
+    COMMENT "Generating 100% MC headers from JSON..."
 )
-add_custom_target(generate_registries DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated_registries.hpp)
+add_custom_target(generate_registries DEPENDS 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/registries.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/tags.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/packets.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated/blocks.hpp
+)
 
 add_executable(papermc_plus_plus ${CORE_SOURCES})
 add_dependencies(papermc_plus_plus generate_registries)

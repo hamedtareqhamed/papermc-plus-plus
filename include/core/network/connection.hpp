@@ -13,7 +13,8 @@
 #include <asio.hpp>
 #include <spdlog/spdlog.h>
 #include "core/protocol/packet.hpp"
-#include "core/protocol/generated_registries.hpp"
+#include "core/protocol/generated/registries.hpp"
+#include "core/protocol/generated/tags.hpp"
 #include "core/protocol/play_packets.hpp"
 #include "core/protocol/buffer.hpp"
 #include "core/protocol/encryption.hpp"
@@ -284,27 +285,13 @@ private:
                 // 3. Send Registry Data Packets (Clientbound 0x07 for 26.2)
                 using namespace papermc::core::protocol::generated;
                 
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:damage_type", .entry_ids = damage_type_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:dimension_type", .entry_ids = dimension_type_entries, .include_overworld_nbt = true});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:biome", .entry_ids = biome_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_variant", .entry_ids = cat_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_variant", .entry_ids = chicken_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_variant", .entry_ids = cow_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:frog_variant", .entry_ids = frog_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:painting_variant", .entry_ids = painting_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = pig_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = wolf_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:zombie_nautilus_variant", .entry_ids = zombie_nautilus_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_sound_variant", .entry_ids = cat_sound_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_sound_variant", .entry_ids = chicken_sound_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_sound_variant", .entry_ids = cow_sound_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_sound_variant", .entry_ids = pig_sound_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_sound_variant", .entry_ids = wolf_sound_variant_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_material", .entry_ids = trim_material_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_pattern", .entry_ids = trim_pattern_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:jukebox_song", .entry_ids = jukebox_song_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:banner_pattern", .entry_ids = banner_pattern_entries, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:instrument", .entry_ids = instrument_entries, .include_overworld_nbt = false});
+                for (const auto& reg : papermc::core::protocol::generated::all_registries) {
+                    send_packet(protocol::RegistryDataPacket{
+                        .registry_id = reg.name,
+                        .entry_ids = reg.entries,
+                        .include_overworld_nbt = reg.include_overworld_nbt
+                    });
+                }
 
                 // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;
