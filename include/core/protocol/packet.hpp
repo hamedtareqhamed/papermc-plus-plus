@@ -134,7 +134,7 @@ struct LoginStartPacket {
     }
 };
 
-// Login Success Packet (State 2, ID 0x02 for Protocol 765 / 1.20.4)
+// Login Success Packet (State 2, Clientbound ID 0x02 for 26.2 / Protocol 776)
 struct LoginSuccessPacket {
     std::array<uint8_t, 16> uuid{};
     std::string username;
@@ -144,40 +144,15 @@ struct LoginSuccessPacket {
         buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(uuid.data()), 16));
         buf.write_string(username);
         buf.write_varint(0); // 0 properties
+        // Session ID (16 bytes UUID)
+        buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(uuid.data()), 16));
     }
 };
 
-// Finish Configuration Packet (State CONFIGURATION, Clientbound ID 0x02)
+// Finish Configuration Packet (State CONFIGURATION, Clientbound ID 0x03 for 26.2 / Protocol 776)
 struct FinishConfigurationPacket {
     void serialize(ByteBuf& buf) const {
-        buf.write_varint(0x02); // Finish Configuration ID
-    }
-};
-
-// Keep Alive Packet (State PLAY, Clientbound ID 0x24 / Serverbound ID 0x15)
-struct KeepAlivePacket {
-    int64_t keep_alive_id{0};
-
-    static std::expected<KeepAlivePacket, std::string_view> deserialize(ByteBuf& buf) noexcept {
-        auto id_res = buf.read_i64();
-        if (!id_res) return std::unexpected(id_res.error());
-        return KeepAlivePacket{.keep_alive_id = *id_res};
-    }
-
-    void serialize(ByteBuf& buf) const {
-        buf.write_varint(0x24); // Packet ID 0x24 in 1.20.4
-        buf.write_i64(keep_alive_id);
-    }
-};
-
-// Confirm Teleport Packet (State PLAY, Serverbound ID 0x00)
-struct ConfirmTeleportPacket {
-    int32_t teleport_id{0};
-
-    static std::expected<ConfirmTeleportPacket, std::string_view> deserialize(ByteBuf& buf) noexcept {
-        auto id_res = buf.read_varint();
-        if (!id_res) return std::unexpected(id_res.error());
-        return ConfirmTeleportPacket{.teleport_id = *id_res};
+        buf.write_varint(0x03); // Clientbound 0x03 in CONFIGURATION for 26.2
     }
 };
 

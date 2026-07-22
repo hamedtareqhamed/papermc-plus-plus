@@ -16,9 +16,6 @@
 #include "core/protocol/play_packets.hpp"
 #include "core/protocol/buffer.hpp"
 #include "core/protocol/encryption.hpp"
-#include "core/world/chunk.hpp"
-#include "core/world/generator.hpp"
-#include "core/world/chunk_streamer.hpp"
 
 namespace papermc::core::network {
 
@@ -129,7 +126,7 @@ private:
                 int64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                     std::chrono::steady_clock::now().time_since_epoch()
                 ).count();
-                protocol::KeepAlivePacket keep_alive{.keep_alive_id = now_ms};
+                protocol::KeepAliveClientbound26_2 keep_alive{.keep_alive_id = now_ms};
                 send_packet(keep_alive);
                 start_keep_alive_timer();
             }
@@ -142,7 +139,7 @@ private:
         teleport_confirm_timer_.expires_after(std::chrono::seconds(2));
         teleport_confirm_timer_.async_wait([this, self](asio::error_code ec) {
             if (!ec && !teleport_confirmed_ && state_ == protocol::ProtocolState::Play) {
-                spdlog::warn("[DEBUG] Waiting for Client Confirm Teleport packet...");
+                spdlog::warn("[DEBUG] Waiting for Client Confirm Teleportation packet (0x00)...");
             }
         });
     }
@@ -220,7 +217,6 @@ private:
 
         int32_t packet_id = *pkt_id_res;
         
-        // Print real-time incoming packet log in terminal
         std::string state_str = state_to_string();
         spdlog::info("[Network IN] Received Packet ID: 0x{:02X} (Length: {} bytes) in state: {}",
                      packet_id, payload.size(), state_str);
@@ -238,7 +234,7 @@ private:
         else if (state_ == protocol::ProtocolState::Status) {
             if (packet_id == 0x00) { // Status Request
                 protocol::StatusResponsePacket response{
-                    .json_payload = R"({"version":{"name":"1.20.4","protocol":765},"players":{"max":100,"online":1},"description":{"text":"PaperMC++ C++23 High-Performance Server Engine"}})"
+                    .json_payload = R"({"version":{"name":"26.2","protocol":776},"players":{"max":100,"online":1},"description":{"text":"PaperMC++ 26.2 High-Performance Core Engine"}})"
                 };
                 send_packet(response);
             } else if (packet_id == 0x01) { // Ping Request
@@ -257,7 +253,6 @@ private:
                     spdlog::info("Login Start received for player '{}' (offline-mode: {})", username_, offline_mode_);
 
                     if (offline_mode_) {
-                        // Offline mode: Parse 16-byte raw UUID and send 1.20.4 compliant Login Success (ID 0x02)
                         std::array<uint8_t, 16> uuid_bytes = protocol::parse_uuid_string("00000000-0000-0000-0000-000000000001");
                         protocol::LoginSuccessPacket login_success{
                             .uuid = uuid_bytes,
@@ -266,88 +261,48 @@ private:
                         send_packet(login_success);
                     }
                 }
-            } else if (packet_id == 0x03) { // Login Acknowledged (Protocol 765)
+            } else if (packet_id == 0x03) { // Login Acknowledged (26.2 Protocol 776)
                 spdlog::info("Login Acknowledged received for player '{}'. Transitioning to CONFIGURATION state...", username_);
                 state_ = protocol::ProtocolState::Configuration;
                 
-                // Send Finish Configuration Packet (Clientbound 0x02 in CONFIGURATION)
+                // Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
                 protocol::FinishConfigurationPacket finish_config;
                 send_packet(finish_config);
             }
         }
         // STATE 4: CONFIGURATION
         else if (state_ == protocol::ProtocolState::Configuration) {
-            if (packet_id == 0x00) { // Settings (Client Information in CONFIGURATION state)
-                spdlog::info("[Network IN] Client settings received in CONFIGURATION state for player '{}'", username_);
-            } else if (packet_id == 0x01) { // Custom Payload / Plugin Message in CONFIGURATION state
-                spdlog::info("[Network IN] Custom payload/brand received in CONFIGURATION state for player '{}'", username_);
-            } else if (packet_id == 0x02) { // Finish Configuration Ack (0x02 in CONFIGURATION state)
+            if (packet_id == 0x00) { // Client Information
+                spdlog::info("[Network IN] Client information received in CONFIGURATION state for player '{}'", username_);
+            } else if (packet_id == 0x03) { // Acknowledge Finish Configuration (0x03 in CONFIGURATION state)
                 spdlog::info("Finish Configuration acknowledged by player '{}'. Transitioning to PLAY state...", username_);
                 state_ = protocol::ProtocolState::Play;
 
-                // 1. Send Join Game (ID 0x29)
-                protocol::JoinGamePacket join_game;
-                send_packet(join_game);
+                // 1. Send Login (play) Packet (Clientbound 0x31 for 26.2 Protocol 776)
+                protocol::LoginPlayPacket26_2 login_play;
+                send_packet(login_play);
 
-                // 2. Send Change Difficulty (ID 0x0B in 1.20.4)
-                protocol::ChangeDifficultyPacket diff_pkt{.difficulty = 2, .locked = false};
-                send_packet(diff_pkt);
-
-                // 3. Send Player Abilities (ID 0x34)
-                protocol::PlayerAbilitiesPacket abilities{.flags = 0x06, .flying_speed = 0.05f, .fov_modifier = 0.1f};
-                send_packet(abilities);
-
-                // 4. Send Held Item Slot (ID 0x49)
-                protocol::HeldItemChangePacket held_item{.slot = 0};
-                send_packet(held_item);
-
-                // 5. Send Set Center Chunk (ID 0x52) -> X=0, Z=0
-                protocol::SetCenterChunkPacket center_chunk{.chunk_x = 0, .chunk_z = 0};
-                send_packet(center_chunk);
-
-                // 6. Send Chunk Batch Start (ID 0x0D)
-                protocol::ChunkBatchStartPacket batch_start;
-                send_packet(batch_start);
-
-                // 7. Send Chunk Data and Light (ID 0x25) -> Spawn chunk (0, 0)
-                world::ChunkColumn spawn_chunk(0, 0);
-                world::ChunkGenerator generator(world::GeneratorType::Flatland);
-                generator.generate_chunk(spawn_chunk);
-
-                protocol::ByteBuf chunk_packet_buf;
-                world::ChunkStreamer::serialize_chunk_data(spawn_chunk, chunk_packet_buf);
-                send_packet_buf(chunk_packet_buf);
-
-                // 8. Send Chunk Batch Finished (ID 0x0C) -> batchSize = 1
-                protocol::ChunkBatchFinishedPacket batch_finished{.batch_size = 1};
-                send_packet(batch_finished);
-
-                // 9. Send Default Spawn Position (ID 0x54) -> Pos(0, 64, 0), Angle(0.0f)
-                protocol::SetDefaultSpawnPositionPacket spawn_pos{.x = 0, .y = 64, .z = 0, .angle = 0.0f};
-                send_packet(spawn_pos);
-
-                // 10. Send Synchronize Player Position (ID 0x3E) -> Pos(0.0, 64.0, 0.0), Teleport ID = 1
-                protocol::PlayerPositionAndLookPacket pos_look{
+                // 2. Send Synchronize Player Position Packet (Clientbound 0x48 for 26.2 Protocol 776)
+                protocol::PlayerPositionPacket26_2 pos_pkt{
+                    .teleport_id = 1,
                     .x = 0.0,
                     .y = 64.0,
                     .z = 0.0,
+                    .vx = 0.0,
+                    .vy = 0.0,
+                    .vz = 0.0,
                     .yaw = 0.0f,
                     .pitch = 0.0f,
-                    .flags = 0,
-                    .teleport_id = 1
+                    .flags = 0
                 };
-                send_packet(pos_look);
+                send_packet(pos_pkt);
                 start_teleport_confirm_timer();
 
-                // 11. Send Game Event (0x20): Start Waiting for Level Chunks (Event 13, Value 0.0f)
-                protocol::GameEventPacket game_event{.event_id = 13, .value = 0.0f};
+                // 3. Send Game Event Packet (Clientbound 0x26 for 26.2 Protocol 776) -> Start waiting for level chunks
+                protocol::GameEventPacket26_2 game_event{.event_id = 13, .value = 0.0f};
                 send_packet(game_event);
 
-                // 12. Send Update Health packet (ID 0x5B)
-                protocol::UpdateHealthPacket health_pkt{.health = 20.0f, .food = 20, .food_saturation = 5.0f};
-                send_packet(health_pkt);
-
-                spdlog::info("PLAY state initialization sequence completed for player '{}'!", username_);
+                spdlog::info("26.2 PLAY state empty world join sequence completed for player '{}'!", username_);
 
                 // Start periodic 5-second KeepAlive ticker
                 start_keep_alive_timer();
@@ -355,35 +310,24 @@ private:
         }
         // STATE 3: PLAY
         else if (state_ == protocol::ProtocolState::Play) {
-            if (packet_id == 0x00) { // Teleport Confirm (Serverbound 0x00 in PLAY)
-                auto confirm_tp = protocol::ConfirmTeleportPacket::deserialize(buf);
-                if (confirm_tp) {
+            if (packet_id == 0x00) { // Confirm Teleportation (Serverbound 0x00 in 26.2 PLAY)
+                auto confirm_tp_id = buf.read_varint();
+                if (confirm_tp_id) {
                     teleport_confirmed_ = true;
                     teleport_confirm_timer_.cancel();
                     player_lifecycle_ = PlayerLifecycleState::SPAWNED_AND_READY;
-                    spdlog::info("[Network IN] Teleport confirmed by player '{}' for Teleport ID {}. Player State: SPAWNED_AND_READY!",
-                                 username_, confirm_tp->teleport_id);
+                    spdlog::info("[Network IN] Confirm Teleportation (0x00) received from player '{}' for Teleport ID {}. Player State: SPAWNED_AND_READY!",
+                                 username_, *confirm_tp_id);
                 }
-            } else if (packet_id == 0x02) { // Set Difficulty (Serverbound 0x02 in PLAY)
-                auto diff = buf.read_u8();
-                if (diff) {
-                    spdlog::info("[Network IN] Received Set Difficulty from player '{}': {}", username_, *diff);
-                }
-            } else if (packet_id == 0x07) { // Chunk Batch Received (Serverbound 0x07 in PLAY)
-                spdlog::info("[Network IN] Received Chunk Batch Received (0x07) from player '{}'", username_);
-            } else if (packet_id == 0x09) { // Client Information / Settings (Serverbound 0x09 in PLAY)
-                auto client_info = protocol::ClientInformationPacket::deserialize(buf);
-                if (client_info) {
-                    spdlog::info("[Network IN] Received Client Information (0x09) from player '{}': locale={}, viewDistance={}",
-                                 username_, client_info->locale, client_info->view_distance);
-                }
-            } else if (packet_id == 0x15 || packet_id == 0x23) { // Keep Alive Response (Serverbound 0x15 in PLAY)
-                auto keep_alive = protocol::KeepAlivePacket::deserialize(buf);
-                if (keep_alive) {
+            } else if (packet_id == 0x1C) { // Keep Alive Response (Serverbound 0x1C in 26.2 PLAY)
+                auto keep_alive_id = buf.read_i64();
+                if (keep_alive_id) {
                     last_keep_alive_timestamp_ = std::chrono::steady_clock::now();
-                    spdlog::info("[Network IN] Received KeepAlive response (0x15) from player '{}' (ID {})",
-                                 username_, keep_alive->keep_alive_id);
+                    spdlog::info("[Network IN] Keep Alive response (0x1C) received from player '{}' (ID {})",
+                                 username_, *keep_alive_id);
                 }
+            } else if (packet_id == 0x0E) { // Client Information (Serverbound 0x0E in 26.2 PLAY)
+                spdlog::info("[Network IN] Client Information (0x0E) received from player '{}'", username_);
             }
         }
     }
