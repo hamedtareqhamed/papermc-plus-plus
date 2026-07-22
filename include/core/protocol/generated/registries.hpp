@@ -256,6 +256,9 @@ namespace papermc::core::protocol::generated {
             "minecraft:overworld",
             "minecraft:the_end",
         }, false},
+        {"minecraft:worldgen/biome", {
+            "minecraft:plains",
+        }, false},
         {"minecraft:zombie_nautilus_variant", {
             "minecraft:temperate",
         }, false},
