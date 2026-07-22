@@ -21,16 +21,8 @@ public:
         buf.write_i32(chunk.x());
         buf.write_i32(chunk.z());
 
-        // 1. Heightmaps NBT Compound Tag containing MOTION_BLOCKING (37 longs) (Unnamed Network NBT)
+        // 1. Heightmaps NBT Compound Tag (Empty CompoundTag 0x0A 0x00)
         buf.write_u8(0x0A); // TAG_Compound
-        buf.write_u8(0x0C); // TAG_Long_Array
-        std::string_view tag_name = "MOTION_BLOCKING";
-        buf.write_u16(static_cast<uint16_t>(tag_name.size()));
-        buf.write_bytes(std::as_bytes(std::span(tag_name)));
-        buf.write_i32(37);   // 37 longs for 256 height values (9 bits per entry)
-        for (int i = 0; i < 37; ++i) {
-            buf.write_i64(0);
-        }
         buf.write_u8(0x00); // TAG_End
 
         // 2. Serialized Chunk Sections Payload Buffer (24 sections)
