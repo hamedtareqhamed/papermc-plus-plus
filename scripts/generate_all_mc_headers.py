@@ -78,6 +78,19 @@ def generate_headers():
         registry_id_map[reg_name] = reg_map
 
     FALLBACK_ENTRIES = {
+        "minecraft:damage_type": [
+            "minecraft:in_fire", "minecraft:lightning_bolt", "minecraft:on_fire", "minecraft:lava",
+            "minecraft:hot_floor", "minecraft:in_wall", "minecraft:cramming", "minecraft:drown",
+            "minecraft:starve", "minecraft:cactus", "minecraft:fall", "minecraft:fly_into_wall",
+            "minecraft:out_of_world", "minecraft:generic", "minecraft:magic", "minecraft:wither",
+            "minecraft:dragon_breath", "minecraft:dry_out", "minecraft:sweet_berry_bush",
+            "minecraft:freeze", "minecraft:stalagmite", "minecraft:falling_block", "minecraft:falling_anvil",
+            "minecraft:falling_stalactite", "minecraft:fireball", "minecraft:arrow", "minecraft:spear",
+            "minecraft:mace_smash", "minecraft:mob_attack", "minecraft:mob_attack_no_aggro",
+            "minecraft:player_attack", "minecraft:thorns", "minecraft:explosion", "minecraft:thorns_explosion",
+            "minecraft:sonic_boom", "minecraft:bad_respawn_point", "minecraft:outside_border",
+            "minecraft:generic_kill", "minecraft:campfire", "minecraft:spit"
+        ],
         "minecraft:dimension_type": ["minecraft:overworld"],
         "minecraft:biome": ["minecraft:plains"],
         "minecraft:cat_variant": ["minecraft:all_black", "minecraft:black", "minecraft:british_shorthair", "minecraft:calico", "minecraft:jellie", "minecraft:persian", "minecraft:ragdoll", "minecraft:red", "minecraft:siamese", "minecraft:tabby", "minecraft:white"],
@@ -229,18 +242,17 @@ def generate_headers():
         for tag_name, entries in resolved.items():
             numerical_ids = []
             for e in entries:
+                e_mc = e if e.startswith('minecraft:') else f"minecraft:{e}"
+                e_short = e.split(':', 1)[-1]
                 if e in reg_id_map:
                     numerical_ids.append(reg_id_map[e])
-                else:
-                    e_mc = e if e.startswith('minecraft:') else f"minecraft:{e}"
-                    if e_mc in reg_id_map:
-                        numerical_ids.append(reg_id_map[e_mc])
+                elif e_mc in reg_id_map:
+                    numerical_ids.append(reg_id_map[e_mc])
+                elif e_short in reg_id_map:
+                    numerical_ids.append(reg_id_map[e_short])
             numerical_ids = list(dict.fromkeys(numerical_ids))
-            if numerical_ids:
-                ids_str = ", ".join(map(str, numerical_ids))
-                tag_entries.append(f"            {{\"{tag_name}\", {{{ids_str}}}}}")
-            else:
-                tag_entries.append(f"            {{\"{tag_name}\", {{}}}}")
+            ids_str = ", ".join(map(str, numerical_ids))
+            tag_entries.append(f"            {{\"{tag_name}\", {{{ids_str}}}}}")
         tag_str += ",\n".join(tag_entries)
         tag_str += "\n        }}"
         tag_structs.append(tag_str)
