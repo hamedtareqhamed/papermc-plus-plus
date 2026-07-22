@@ -152,7 +152,7 @@ def is_valid_entry(entry_name):
 
     for reg_name, reg_map in registry_id_map.items():
         if len(reg_map) == 0 or reg_name not in DYNAMIC_REGISTRY_NAMES: continue
-        include_nbt = "true" if reg_name == "minecraft:dimension_type" else "false"
+        include_nbt = "false"
         reg_content.append(f"        {{\"{reg_name}\", {{")
         
         # Sort by protocol id
