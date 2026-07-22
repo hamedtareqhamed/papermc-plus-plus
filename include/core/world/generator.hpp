@@ -28,9 +28,6 @@ public:
 
         for (int32_t x = 0; x < 16; ++x) {
             for (int32_t z = 0; z < 16; ++z) {
-                // Bedrock layer
-                chunk.set_block(x, -64, z, bedrock);
-
                 if (type_ == GeneratorType::Flatland) {
                     chunk.set_block(x, 0, z, bedrock); // Height 0: Bedrock
                     chunk.set_block(x, 1, z, dirt);    // Height 1: Dirt
