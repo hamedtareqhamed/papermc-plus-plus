@@ -101,27 +101,8 @@ public:
         buf.write_i32(chunk.x());
         buf.write_i32(chunk.z());
 
-        // 1. Heightmaps NBT Compound Tag containing MOTION_BLOCKING & WORLD_SURFACE
+        // 1. Heightmaps NBT Compound Tag (Empty CompoundTag 0x0A 0x00)
         buf.write_u8(0x0A); // TAG_Compound
-        
-        // MOTION_BLOCKING
-        buf.write_u8(0x0C); // TAG_Long_Array
-        std::string_view mb_name = "MOTION_BLOCKING";
-        buf.write_u16(static_cast<uint16_t>(mb_name.size()));
-        buf.write_bytes(std::as_bytes(std::span(mb_name)));
-        buf.write_i32(37);   // 37 longs for 256 height values (9 bits per entry)
-        uint64_t mb_long = 0;
-        for (int k = 0; k < 7; ++k) mb_long |= (5ULL << (k * 9)); // height 5 (y=4 grass block)
-        for (int i = 0; i < 37; ++i) buf.write_i64(static_cast<int64_t>(mb_long));
-
-        // WORLD_SURFACE
-        buf.write_u8(0x0C); // TAG_Long_Array
-        std::string_view ws_name = "WORLD_SURFACE";
-        buf.write_u16(static_cast<uint16_t>(ws_name.size()));
-        buf.write_bytes(std::as_bytes(std::span(ws_name)));
-        buf.write_i32(37);
-        for (int i = 0; i < 37; ++i) buf.write_i64(static_cast<int64_t>(mb_long));
-
         buf.write_u8(0x00); // TAG_End
 
         // 2. Serialized Chunk Sections Payload Buffer (24 sections)
