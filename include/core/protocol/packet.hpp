@@ -224,6 +224,7 @@ inline void write_nbt_double(ByteBuf &buf, std::string_view name,
 
 inline void write_overworld_dimension_nbt(ByteBuf &buf) {
   buf.write_u8(0x0A); // Root TAG_Compound
+  buf.write_u16(0);   // Root compound name length (0 bytes)
 
   write_nbt_float(buf, "ambient_light", 0.0f);
   write_nbt_byte(buf, "bed_works", 1);
