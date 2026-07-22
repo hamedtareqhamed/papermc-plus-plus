@@ -291,19 +291,22 @@ private:
                         "minecraft:freeze", "minecraft:stalagmite", "minecraft:falling_block", "minecraft:arrow",
                         "minecraft:fireball", "minecraft:lightning_bolt", "minecraft:mob_attack", "minecraft:player_attack",
                         "minecraft:thorns", "minecraft:explosion"
-                    }
+                    },
+                    .include_overworld_nbt = false
                 };
                 send_packet(damage_type_registry);
 
                 protocol::RegistryDataPacket dim_type_registry{
                     .registry_id = "minecraft:dimension_type",
-                    .entry_ids = {"minecraft:overworld"}
+                    .entry_ids = {"minecraft:overworld"},
+                    .include_overworld_nbt = true
                 };
                 send_packet(dim_type_registry);
 
                 protocol::RegistryDataPacket biome_registry{
                     .registry_id = "minecraft:biome",
-                    .entry_ids = {"minecraft:plains"}
+                    .entry_ids = {"minecraft:plains"},
+                    .include_overworld_nbt = false
                 };
                 send_packet(biome_registry);
 

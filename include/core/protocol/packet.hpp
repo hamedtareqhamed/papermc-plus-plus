@@ -11,6 +11,7 @@
 #include <span>
 #include <sstream>
 #include <iomanip>
+#include <bit>
 #include "core/protocol/buffer.hpp"
 
 namespace papermc::core::protocol {
@@ -161,10 +162,92 @@ struct SelectKnownPacksPacket {
     }
 };
 
+// Unnamed Network NBT Field Writers
+inline void write_nbt_string(ByteBuf& buf, std::string_view name, std::string_view value) {
+    buf.write_u8(0x08); // TAG_String
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    buf.write_u16(static_cast<uint16_t>(value.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(value.data()), value.size()));
+}
+
+inline void write_nbt_byte(ByteBuf& buf, std::string_view name, uint8_t value) {
+    buf.write_u8(0x01); // TAG_Byte
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    buf.write_u8(value);
+}
+
+inline void write_nbt_int(ByteBuf& buf, std::string_view name, int32_t value) {
+    buf.write_u8(0x03); // TAG_Int
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    buf.write_i32(value);
+}
+
+inline void write_nbt_float(ByteBuf& buf, std::string_view name, float value) {
+    buf.write_u8(0x05); // TAG_Float
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    buf.write_i32(std::bit_cast<int32_t>(value));
+}
+
+inline void write_nbt_double(ByteBuf& buf, std::string_view name, double value) {
+    buf.write_u8(0x06); // TAG_Double
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    buf.write_i64(std::bit_cast<int64_t>(value));
+}
+
+inline void write_overworld_dimension_nbt(ByteBuf& buf) {
+    buf.write_u8(0x0A); // Root TAG_Compound (Unnamed Network NBT)
+
+    write_nbt_float(buf, "ambient_light", 0.0f);
+    write_nbt_byte(buf, "bed_works", 1);
+    write_nbt_double(buf, "coordinate_scale", 1.0);
+    write_nbt_string(buf, "effects", "minecraft:overworld");
+    write_nbt_byte(buf, "has_ceiling", 0);
+    write_nbt_byte(buf, "has_raids", 1);
+    write_nbt_byte(buf, "has_skylight", 1);
+    write_nbt_int(buf, "height", 384);
+    write_nbt_string(buf, "infiniburn", "#minecraft:infiniburn_overworld");
+    write_nbt_int(buf, "logical_height", 384);
+    write_nbt_int(buf, "min_y", -64);
+    write_nbt_int(buf, "monster_spawn_block_light_limit", 0);
+
+    // monster_spawn_light_level Compound
+    buf.write_u8(0x0A); // TAG_Compound
+    std::string_view name = "monster_spawn_light_level";
+    buf.write_u16(static_cast<uint16_t>(name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
+    
+    write_nbt_string(buf, "type", "minecraft:uniform");
+    
+    // value Compound inside monster_spawn_light_level
+    buf.write_u8(0x0A); // TAG_Compound
+    std::string_view val_name = "value";
+    buf.write_u16(static_cast<uint16_t>(val_name.size()));
+    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(val_name.data()), val_name.size()));
+    
+    write_nbt_int(buf, "min_inclusive", 0);
+    write_nbt_int(buf, "max_inclusive", 7);
+    buf.write_u8(0x00); // TAG_End for value compound
+
+    buf.write_u8(0x00); // TAG_End for monster_spawn_light_level compound
+
+    write_nbt_byte(buf, "natural", 1);
+    write_nbt_byte(buf, "piglin_safe", 0);
+    write_nbt_byte(buf, "respawn_anchor_works", 0);
+    write_nbt_byte(buf, "ultrawarm", 0);
+
+    buf.write_u8(0x00); // TAG_End for root compound
+}
+
 // Registry Data Packet (State CONFIGURATION, Clientbound ID 0x07 for 26.2 / Protocol 776)
 struct RegistryDataPacket {
     std::string registry_id;
     std::vector<std::string> entry_ids;
+    bool include_overworld_nbt{false};
 
     void serialize(ByteBuf& buf) const {
         buf.write_varint(0x07); // Clientbound 0x07 in CONFIGURATION state
@@ -172,7 +255,12 @@ struct RegistryDataPacket {
         buf.write_varint(static_cast<int32_t>(entry_ids.size()));
         for (const auto& entry_id : entry_ids) {
             buf.write_string(entry_id);
-            buf.write_u8(0); // has_data = false (sourced from selected known pack)
+            if (include_overworld_nbt && entry_id == "minecraft:overworld") {
+                buf.write_u8(1); // has_data = true
+                write_overworld_dimension_nbt(buf);
+            } else {
+                buf.write_u8(0); // has_data = false (sourced from selected known pack)
+            }
         }
     }
 };
@@ -191,10 +279,11 @@ struct UpdateTagsPacket {
     void serialize(ByteBuf& buf) const {
         buf.write_varint(0x0D); // Clientbound 0x0D in CONFIGURATION state
         
-        // 1 Tagged Registry: minecraft:damage_type
-        buf.write_varint(1);
-        buf.write_string("minecraft:damage_type");
+        // 2 Tagged Registries: minecraft:damage_type & minecraft:timeline
+        buf.write_varint(2);
 
+        // Registry 1: minecraft:damage_type
+        buf.write_string("minecraft:damage_type");
         std::vector<std::pair<std::string, std::vector<int32_t>>> damage_tags = {
             {"minecraft:is_fire", {0, 1, 2}},
             {"minecraft:is_drowning", {4}},
@@ -211,6 +300,21 @@ struct UpdateTagsPacket {
 
         buf.write_varint(static_cast<int32_t>(damage_tags.size()));
         for (const auto& [tag_name, entries] : damage_tags) {
+            buf.write_string(tag_name);
+            buf.write_varint(static_cast<int32_t>(entries.size()));
+            for (int32_t entry_id : entries) {
+                buf.write_varint(entry_id);
+            }
+        }
+
+        // Registry 2: minecraft:timeline
+        buf.write_string("minecraft:timeline");
+        std::vector<std::pair<std::string, std::vector<int32_t>>> timeline_tags = {
+            {"minecraft:in_overworld", {0}}
+        };
+
+        buf.write_varint(static_cast<int32_t>(timeline_tags.size()));
+        for (const auto& [tag_name, entries] : timeline_tags) {
             buf.write_string(tag_name);
             buf.write_varint(static_cast<int32_t>(entries.size()));
             for (int32_t entry_id : entries) {
