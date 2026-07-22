@@ -215,24 +215,15 @@ inline void write_overworld_dimension_nbt(ByteBuf& buf) {
     write_nbt_int(buf, "min_y", -64);
     write_nbt_int(buf, "monster_spawn_block_light_limit", 0);
 
-    // monster_spawn_light_level Compound
+    // monster_spawn_light_level Compound (flattened IntProvider in 26.2)
     buf.write_u8(0x0A); // TAG_Compound
     std::string_view name = "monster_spawn_light_level";
     buf.write_u16(static_cast<uint16_t>(name.size()));
     buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(name.data()), name.size()));
     
     write_nbt_string(buf, "type", "minecraft:uniform");
-    
-    // value Compound inside monster_spawn_light_level
-    buf.write_u8(0x0A); // TAG_Compound
-    std::string_view val_name = "value";
-    buf.write_u16(static_cast<uint16_t>(val_name.size()));
-    buf.write_bytes(std::span<const std::byte>(reinterpret_cast<const std::byte*>(val_name.data()), val_name.size()));
-    
     write_nbt_int(buf, "min_inclusive", 0);
     write_nbt_int(buf, "max_inclusive", 7);
-    buf.write_u8(0x00); // TAG_End for value compound
-
     buf.write_u8(0x00); // TAG_End for monster_spawn_light_level compound
 
     write_nbt_byte(buf, "natural", 1);
