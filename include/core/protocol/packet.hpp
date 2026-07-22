@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <utility>
 #include <expected>
 #include <string_view>
 #include <span>
@@ -173,7 +174,33 @@ struct UpdateEnabledFeaturesPacket {
 struct UpdateTagsPacket {
     void serialize(ByteBuf& buf) const {
         buf.write_varint(0x0D); // Clientbound 0x0D in CONFIGURATION state
-        buf.write_varint(0);    // 0 tagged registries (tell client to use local defaults for minecraft:core 26.2)
+        
+        // 1 Tagged Registry: minecraft:damage_type
+        buf.write_varint(1);
+        buf.write_string("minecraft:damage_type");
+
+        std::vector<std::pair<std::string, std::vector<int32_t>>> damage_tags = {
+            {"minecraft:is_fire", {0}},
+            {"minecraft:is_drowning", {0}},
+            {"minecraft:is_freezing", {0}},
+            {"minecraft:is_fall", {0}},
+            {"minecraft:is_explosion", {0}},
+            {"minecraft:is_projectile", {0}},
+            {"minecraft:bypasses_armor", {0}},
+            {"minecraft:bypasses_invulnerability", {0}},
+            {"minecraft:bypasses_shield", {0}},
+            {"minecraft:burns_armor", {0}},
+            {"minecraft:always_hurts_knockback", {0}}
+        };
+
+        buf.write_varint(static_cast<int32_t>(damage_tags.size()));
+        for (const auto& [tag_name, entries] : damage_tags) {
+            buf.write_string(tag_name);
+            buf.write_varint(static_cast<int32_t>(entries.size()));
+            for (int32_t entry_id : entries) {
+                buf.write_varint(entry_id);
+            }
+        }
     }
 };
 
