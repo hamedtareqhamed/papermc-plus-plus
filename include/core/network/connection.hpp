@@ -310,7 +310,20 @@ private:
                 protocol::LoginPlayPacket26_2 login_play;
                 send_packet(login_play);
 
-                // 2. Send Synchronize Player Position Packet (Clientbound 0x48 for 26.2 Protocol 776)
+                // 2. Send Set Center Chunk Packet (Clientbound 0x5E / 94)
+                protocol::SetCenterChunkPacket center_pkt{.chunk_x = 0, .chunk_z = 0};
+                send_packet(center_pkt);
+
+                // 3. Stream Spawn Chunk Data (Clientbound 0x2D / 45 for 26.2)
+                papermc::core::world::ChunkGenerator generator(papermc::core::world::GeneratorType::Flatland);
+                papermc::core::world::ChunkColumn spawn_chunk(0, 0);
+                generator.generate_chunk(spawn_chunk);
+
+                protocol::ByteBuf chunk_buf(16384);
+                papermc::core::world::ChunkStreamer::serialize_chunk_data(spawn_chunk, chunk_buf);
+                send_packet_buf(chunk_buf);
+
+                // 4. Send Synchronize Player Position Packet (Clientbound 0x48 for 26.2 Protocol 776)
                 protocol::PlayerPositionPacket26_2 pos_pkt{
                     .teleport_id = 1,
                     .x = 0.0,
@@ -324,18 +337,7 @@ private:
                     .flags = 0
                 };
                 send_packet(pos_pkt);
-                // 3. Send Set Center Chunk (Clientbound 0x59)
-                protocol::SetCenterChunkPacket center_pkt{.chunk_x = 0, .chunk_z = 0};
-                send_packet(center_pkt);
-
-                // 4. Stream Spawn Chunk Data (Clientbound 0x29 for 26.2)
-                papermc::core::world::ChunkGenerator generator(papermc::core::world::GeneratorType::Flatland);
-                papermc::core::world::ChunkColumn spawn_chunk(0, 0);
-                generator.generate_chunk(spawn_chunk);
-
-                protocol::ByteBuf chunk_buf(16384);
-                papermc::core::world::ChunkStreamer::serialize_chunk_data(spawn_chunk, chunk_buf);
-                send_packet_buf(chunk_buf);
+                start_teleport_confirm_timer();
 
                 // 5. Send Game Event Packet (Clientbound 0x26) -> Finish waiting for level chunks
                 protocol::GameEventPacket26_2 game_event{.event_id = 13, .value = 0.0f};
