@@ -105,15 +105,10 @@ public:
         buf.write_u8(0x0A); // TAG_Compound
         buf.write_u8(0x00); // TAG_End
 
-        // 2. Serialized Chunk Sections Payload Buffer (24 sections)
-        protocol::ByteBuf section_buf(4096);
+        // 2. Serialized Chunk Sections Payload (24 sections directly in 26.2)
         for (std::size_t s = 0; s < CHUNK_SECTIONS; ++s) {
-            serialize_section(chunk.get_section(s), section_buf);
+            serialize_section(chunk.get_section(s), buf);
         }
-
-        auto data_span = section_buf.data_span();
-        buf.write_varint(static_cast<int32_t>(data_span.size()));
-        buf.write_bytes(data_span);
 
         // 3. Block Entities Array Count: VarInt = 0
         buf.write_varint(0);
