@@ -274,17 +274,44 @@ private:
             if (packet_id == 0x00) { // Client Information
                 spdlog::info("[Network IN] Client information received in CONFIGURATION state for player '{}'", username_);
             } else if (packet_id == 0x07) { // Serverbound Select Known Packs (0x07 in CONFIGURATION)
-                spdlog::info("[Network IN] Select Known Packs response received from player '{}'. Sending features, tags, finish config...", username_);
+                spdlog::info("[Network IN] Select Known Packs response received from player '{}'. Sending Registry Data & Finish Configuration...", username_);
                 
                 // 2. Send Update Enabled Features (Clientbound 0x0C)
                 protocol::UpdateEnabledFeaturesPacket features_pkt;
                 send_packet(features_pkt);
 
-                // 3. Send Update Tags Packet (Clientbound 0x0D with mandatory damage_type tags)
+                // 3. Send Registry Data Packets (Clientbound 0x07 for 26.2)
+                protocol::RegistryDataPacket damage_type_registry{
+                    .registry_id = "minecraft:damage_type",
+                    .entry_ids = {
+                        "minecraft:in_fire", "minecraft:on_fire", "minecraft:lava", "minecraft:in_wall",
+                        "minecraft:drown", "minecraft:starve", "minecraft:cactus", "minecraft:fall",
+                        "minecraft:fly_into_wall", "minecraft:out_of_world", "minecraft:generic", "minecraft:magic",
+                        "minecraft:wither", "minecraft:dragon_breath", "minecraft:dry_out", "minecraft:sweet_berry_bush",
+                        "minecraft:freeze", "minecraft:stalagmite", "minecraft:falling_block", "minecraft:arrow",
+                        "minecraft:fireball", "minecraft:lightning_bolt", "minecraft:mob_attack", "minecraft:player_attack",
+                        "minecraft:thorns", "minecraft:explosion"
+                    }
+                };
+                send_packet(damage_type_registry);
+
+                protocol::RegistryDataPacket dim_type_registry{
+                    .registry_id = "minecraft:dimension_type",
+                    .entry_ids = {"minecraft:overworld"}
+                };
+                send_packet(dim_type_registry);
+
+                protocol::RegistryDataPacket biome_registry{
+                    .registry_id = "minecraft:biome",
+                    .entry_ids = {"minecraft:plains"}
+                };
+                send_packet(biome_registry);
+
+                // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;
                 send_packet(tags_pkt);
 
-                // 4. Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
+                // 5. Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
                 protocol::FinishConfigurationPacket finish_config;
                 send_packet(finish_config);
             } else if (packet_id == 0x03) { // Acknowledge Finish Configuration (Serverbound 0x03 in CONFIGURATION)

@@ -161,6 +161,22 @@ struct SelectKnownPacksPacket {
     }
 };
 
+// Registry Data Packet (State CONFIGURATION, Clientbound ID 0x07 for 26.2 / Protocol 776)
+struct RegistryDataPacket {
+    std::string registry_id;
+    std::vector<std::string> entry_ids;
+
+    void serialize(ByteBuf& buf) const {
+        buf.write_varint(0x07); // Clientbound 0x07 in CONFIGURATION state
+        buf.write_string(registry_id);
+        buf.write_varint(static_cast<int32_t>(entry_ids.size()));
+        for (const auto& entry_id : entry_ids) {
+            buf.write_string(entry_id);
+            buf.write_u8(0); // has_data = false (sourced from selected known pack)
+        }
+    }
+};
+
 // Update Enabled Features Packet (State CONFIGURATION, Clientbound ID 0x0C for 26.2 / Protocol 776)
 struct UpdateEnabledFeaturesPacket {
     void serialize(ByteBuf& buf) const {
@@ -180,17 +196,17 @@ struct UpdateTagsPacket {
         buf.write_string("minecraft:damage_type");
 
         std::vector<std::pair<std::string, std::vector<int32_t>>> damage_tags = {
-            {"minecraft:is_fire", {0}},
-            {"minecraft:is_drowning", {0}},
-            {"minecraft:is_freezing", {0}},
-            {"minecraft:is_fall", {0}},
-            {"minecraft:is_explosion", {0}},
-            {"minecraft:is_projectile", {0}},
-            {"minecraft:bypasses_armor", {0}},
-            {"minecraft:bypasses_invulnerability", {0}},
-            {"minecraft:bypasses_shield", {0}},
-            {"minecraft:burns_armor", {0}},
-            {"minecraft:always_hurts_knockback", {0}}
+            {"minecraft:is_fire", {0, 1, 2}},
+            {"minecraft:is_drowning", {4}},
+            {"minecraft:is_freezing", {16}},
+            {"minecraft:is_fall", {7, 8}},
+            {"minecraft:is_explosion", {25}},
+            {"minecraft:is_projectile", {19, 20}},
+            {"minecraft:bypasses_armor", {5, 7, 9, 11, 12, 13, 14, 16}},
+            {"minecraft:bypasses_invulnerability", {9}},
+            {"minecraft:bypasses_shield", {3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 26}},
+            {"minecraft:burns_armor", {0, 1, 2}},
+            {"minecraft:always_hurts_knockback", {21, 22, 23}}
         };
 
         buf.write_varint(static_cast<int32_t>(damage_tags.size()));
