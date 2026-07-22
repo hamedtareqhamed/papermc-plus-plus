@@ -8,13 +8,14 @@ Generates high-performance modern C++ code following strict C++23 guidelines:
 
 import sys
 import logging
+import asyncio
 from typing import Optional
 from pathlib import Path
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from agents.config import generate_completion
+from agents.config import generate_completion, async_generate_completion
 
 logger = logging.getLogger("CoderAgent")
 
@@ -32,7 +33,7 @@ class CoderAgent:
     def __init__(self):
         logger.info("Initializing Coder Agent...")
 
-    def generate_cpp_code(self, architecture_plan: str, target_component: str) -> str:
+    def generate_cpp_code(self, architecture_plan: str, target_component: str, preferred_provider: Optional[str] = None) -> str:
         logger.info(f"Coder Agent generating code for target component: '{target_component}'")
         user_prompt = f"""Architecture Plan:
 {architecture_plan}
@@ -42,7 +43,21 @@ Target Component:
 
 Generate standard C++23 header and source file contents adhering strictly to our modern C++23 guidelines.
 """
-        code = generate_completion(prompt=user_prompt, system_instruction=SYSTEM_PROMPT)
+        code = generate_completion(prompt=user_prompt, system_instruction=SYSTEM_PROMPT, preferred_provider=preferred_provider)
+        return code
+
+    async def async_generate_cpp_code(self, architecture_plan: str, target_component: str, preferred_provider: Optional[str] = None) -> str:
+        """Asynchronous generation method for parallel worker dispatch."""
+        logger.info(f"[ASYNC] Coder Agent generating code concurrently for '{target_component}' via provider '{preferred_provider}'...")
+        user_prompt = f"""Architecture Plan:
+{architecture_plan}
+
+Target Component:
+{target_component}
+
+Generate standard C++23 header/source code adhering strictly to modern C++23 guidelines.
+"""
+        code = await async_generate_completion(prompt=user_prompt, system_instruction=SYSTEM_PROMPT, preferred_provider=preferred_provider)
         return code
 
 def main():
