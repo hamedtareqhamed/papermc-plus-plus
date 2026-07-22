@@ -160,6 +160,23 @@ struct SelectKnownPacksPacket {
     }
 };
 
+// Update Enabled Features Packet (State CONFIGURATION, Clientbound ID 0x0C for 26.2 / Protocol 776)
+struct UpdateEnabledFeaturesPacket {
+    void serialize(ByteBuf& buf) const {
+        buf.write_varint(0x0C); // Clientbound 0x0C in CONFIGURATION state
+        buf.write_varint(1);    // 1 feature flag
+        buf.write_string("minecraft:vanilla");
+    }
+};
+
+// Update Tags Packet (State CONFIGURATION, Clientbound ID 0x0D for 26.2 / Protocol 776)
+struct UpdateTagsPacket {
+    void serialize(ByteBuf& buf) const {
+        buf.write_varint(0x0D); // Clientbound 0x0D in CONFIGURATION state
+        buf.write_varint(0);    // 0 tagged registries (tell client to use local defaults for minecraft:core 26.2)
+    }
+};
+
 // Finish Configuration Packet (State CONFIGURATION, Clientbound ID 0x03 for 26.2 / Protocol 776)
 struct FinishConfigurationPacket {
     void serialize(ByteBuf& buf) const {

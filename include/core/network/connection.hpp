@@ -264,7 +264,7 @@ private:
                 spdlog::info("Login Acknowledged received for player '{}'. Transitioning to CONFIGURATION state...", username_);
                 state_ = protocol::ProtocolState::Configuration;
                 
-                // Send Select Known Packs Packet (Clientbound 0x0E in CONFIGURATION state for 26.2)
+                // 1. Send Select Known Packs Packet (Clientbound 0x0E in CONFIGURATION state for 26.2)
                 protocol::SelectKnownPacksPacket known_packs;
                 send_packet(known_packs);
             }
@@ -274,9 +274,17 @@ private:
             if (packet_id == 0x00) { // Client Information
                 spdlog::info("[Network IN] Client information received in CONFIGURATION state for player '{}'", username_);
             } else if (packet_id == 0x07) { // Serverbound Select Known Packs (0x07 in CONFIGURATION)
-                spdlog::info("[Network IN] Select Known Packs response received from player '{}'. Sending Finish Configuration...", username_);
+                spdlog::info("[Network IN] Select Known Packs response received from player '{}'. Sending features, tags, finish config...", username_);
                 
-                // Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
+                // 2. Send Update Enabled Features (Clientbound 0x0C)
+                protocol::UpdateEnabledFeaturesPacket features_pkt;
+                send_packet(features_pkt);
+
+                // 3. Send Update Tags (Clientbound 0x0D)
+                protocol::UpdateTagsPacket tags_pkt;
+                send_packet(tags_pkt);
+
+                // 4. Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
                 protocol::FinishConfigurationPacket finish_config;
                 send_packet(finish_config);
             } else if (packet_id == 0x03) { // Acknowledge Finish Configuration (Serverbound 0x03 in CONFIGURATION)
