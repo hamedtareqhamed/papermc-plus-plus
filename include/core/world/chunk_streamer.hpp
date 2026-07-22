@@ -21,9 +21,8 @@ public:
         buf.write_i32(chunk.x());
         buf.write_i32(chunk.z());
 
-        // 1. Heightmaps NBT Compound Tag containing MOTION_BLOCKING (37 longs)
+        // 1. Heightmaps NBT Compound Tag containing MOTION_BLOCKING (37 longs) (Unnamed Network NBT)
         buf.write_u8(0x0A); // TAG_Compound
-        buf.write_u16(0);    // Root name length = 0
         buf.write_u8(0x0C); // TAG_Long_Array
         std::string_view tag_name = "MOTION_BLOCKING";
         buf.write_u16(static_cast<uint16_t>(tag_name.size()));
