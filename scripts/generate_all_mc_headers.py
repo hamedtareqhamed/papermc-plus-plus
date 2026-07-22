@@ -97,7 +97,9 @@ def generate_headers():
         "minecraft:trim_pattern": ["minecraft:sentry", "minecraft:dune", "minecraft:coast", "minecraft:wild", "minecraft:ward", "minecraft:eye", "minecraft:vex", "minecraft:tide", "minecraft:snout", "minecraft:rib", "minecraft:spire", "minecraft:wayfinder", "minecraft:raiser", "minecraft:shaper", "minecraft:host", "minecraft:silence", "minecraft:flow", "minecraft:bolt"],
         "minecraft:jukebox_song": ["minecraft:11", "minecraft:13", "minecraft:5", "minecraft:blocks", "minecraft:bounce", "minecraft:cat", "minecraft:chirp", "minecraft:creator", "minecraft:creator_music_box", "minecraft:far", "minecraft:lava_chicken", "minecraft:mall", "minecraft:mellohi", "minecraft:otherside", "minecraft:pigstep", "minecraft:precipice", "minecraft:relic", "minecraft:stal", "minecraft:strad", "minecraft:tears", "minecraft:wait", "minecraft:ward"],
         "minecraft:instrument": ["minecraft:ponder_goat_horn", "minecraft:sing_goat_horn", "minecraft:seek_goat_horn", "minecraft:feel_goat_horn", "minecraft:admire_goat_horn", "minecraft:call_goat_horn", "minecraft:yearn_goat_horn", "minecraft:dream_goat_horn"],
-        "minecraft:banner_pattern": ["minecraft:base", "minecraft:square_bottom_left", "minecraft:square_bottom_right", "minecraft:square_top_left", "minecraft:square_top_right", "minecraft:stripe_bottom", "minecraft:stripe_top", "minecraft:stripe_left", "minecraft:stripe_right", "minecraft:stripe_center", "minecraft:stripe_middle", "minecraft:stripe_downright", "minecraft:stripe_downleft", "minecraft:small_stripes", "minecraft:cross", "minecraft:straight_cross", "minecraft:triangle_bottom", "minecraft:triangle_top", "minecraft:triangles_bottom", "minecraft:triangles_top", "minecraft:diagonal_left", "minecraft:diagonal_right", "minecraft:diagonal_up_left", "minecraft:diagonal_up_right", "minecraft:circle", "minecraft:rhombus", "minecraft:half_vertical", "minecraft:half_horizontal", "minecraft:half_vertical_right", "minecraft:half_horizontal_bottom", "minecraft:border", "minecraft:curly_border", "minecraft:gradient", "minecraft:gradient_up", "minecraft:bricks", "minecraft:globe", "minecraft:creeper", "minecraft:skull", "minecraft:flower", "minecraft:mojang", "minecraft:piglin", "minecraft:flow", "minecraft:guster"]
+        "minecraft:banner_pattern": ["minecraft:base", "minecraft:square_bottom_left", "minecraft:square_bottom_right", "minecraft:square_top_left", "minecraft:square_top_right", "minecraft:stripe_bottom", "minecraft:stripe_top", "minecraft:stripe_left", "minecraft:stripe_right", "minecraft:stripe_center", "minecraft:stripe_middle", "minecraft:stripe_downright", "minecraft:stripe_downleft", "minecraft:small_stripes", "minecraft:cross", "minecraft:straight_cross", "minecraft:triangle_bottom", "minecraft:triangle_top", "minecraft:triangles_bottom", "minecraft:triangles_top", "minecraft:diagonal_left", "minecraft:diagonal_right", "minecraft:diagonal_up_left", "minecraft:diagonal_up_right", "minecraft:circle", "minecraft:rhombus", "minecraft:half_vertical", "minecraft:half_horizontal", "minecraft:half_vertical_right", "minecraft:half_horizontal_bottom", "minecraft:border", "minecraft:curly_border", "minecraft:gradient", "minecraft:gradient_up", "minecraft:bricks", "minecraft:globe", "minecraft:creeper", "minecraft:skull", "minecraft:flower", "minecraft:mojang", "minecraft:piglin", "minecraft:flow", "minecraft:guster"],
+        "minecraft:timeline": ["minecraft:overworld"],
+        "minecraft:world_clock": ["minecraft:overworld"]
     }
 
     # Populate fallback entries for registries with missing/incomplete entries
@@ -130,6 +132,8 @@ def generate_headers():
         "minecraft:damage_type",
         "minecraft:dimension_type",
         "minecraft:biome",
+        "minecraft:timeline",
+        "minecraft:world_clock",
         "minecraft:cat_variant",
         "minecraft:chicken_variant",
         "minecraft:cow_variant",

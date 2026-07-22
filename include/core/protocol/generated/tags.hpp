@@ -268,6 +268,12 @@ namespace papermc::core::protocol::generated {
             {"minecraft:enchantable/mace", {1253}},
             {"minecraft:enchantable/armor", {985, 989, 993, 1005, 997, 1001, 1009, 984, 988, 992, 1004, 996, 1000, 1008, 983, 987, 991, 1003, 995, 999, 1007, 982, 986, 990, 1002, 994, 998, 1006, 915}}
         }},
+        {"minecraft:timeline", {
+            {"minecraft:universal", {}},
+            {"minecraft:in_nether", {}},
+            {"minecraft:in_end", {}},
+            {"minecraft:in_overworld", {}}
+        }},
         {"minecraft:entity_type", {
             {"minecraft:accepts_iron_golem_gift", {28}},
             {"minecraft:candidate_for_iron_golem_gift", {140, 28}},

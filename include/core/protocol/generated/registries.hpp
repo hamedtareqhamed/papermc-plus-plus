@@ -146,6 +146,9 @@ namespace papermc::core::protocol::generated {
             "minecraft:temperate",
             "minecraft:warm",
         }, false},
+        {"minecraft:timeline", {
+            "minecraft:overworld",
+        }, false},
         {"minecraft:trim_material", {
             "minecraft:quartz",
             "minecraft:iron",
@@ -192,6 +195,9 @@ namespace papermc::core::protocol::generated {
             "minecraft:spotted",
             "minecraft:striped",
             "minecraft:woods",
+        }, false},
+        {"minecraft:world_clock", {
+            "minecraft:overworld",
         }, false},
         {"minecraft:zombie_nautilus_variant", {
             "minecraft:temperate",
