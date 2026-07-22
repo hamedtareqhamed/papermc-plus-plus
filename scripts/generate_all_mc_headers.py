@@ -88,6 +88,7 @@ def generate_headers():
         "    inline const std::vector<RegistryData> all_registries = {"
     ]
     for reg_name, reg_map in registry_id_map.items():
+        if len(reg_map) == 0: continue
         include_nbt = "true" if reg_name == "minecraft:dimension_type" else "false"
         reg_content.append(f"        {{\"{reg_name}\", {{")
         
@@ -148,7 +149,7 @@ def generate_headers():
 
     tag_structs = []
     for reg_name, tags in all_tags.items():
-        if reg_name not in registry_id_map:
+        if reg_name not in registry_id_map or len(registry_id_map[reg_name]) == 0:
             continue
         resolved = {}
         resolving = set()
