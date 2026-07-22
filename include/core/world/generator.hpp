@@ -32,16 +32,11 @@ public:
                 chunk.set_block(x, -64, z, bedrock);
 
                 if (type_ == GeneratorType::Flatland) {
-                    // Stone layers: -63 to -1
-                    for (int32_t y = -63; y < 0; ++y) {
-                        chunk.set_block(x, y, z, stone);
-                    }
-                    // Dirt layers: 0 to 3
-                    for (int32_t y = 0; y < 3; ++y) {
-                        chunk.set_block(x, y, z, dirt);
-                    }
-                    // Grass top: y = 3
-                    chunk.set_block(x, 3, z, grass);
+                    chunk.set_block(x, 0, z, bedrock); // Height 0: Bedrock
+                    chunk.set_block(x, 1, z, dirt);    // Height 1: Dirt
+                    chunk.set_block(x, 2, z, dirt);    // Height 2: Dirt
+                    chunk.set_block(x, 3, z, dirt);    // Height 3: Dirt
+                    chunk.set_block(x, 4, z, grass);   // Height 4: Grass Block
                 } else {
                     // Simple noise elevation formula
                     double world_x = (chunk.x() * 16) + x;

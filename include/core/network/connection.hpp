@@ -314,7 +314,7 @@ private:
                 protocol::PlayerPositionPacket26_2 pos_pkt{
                     .teleport_id = 1,
                     .x = 0.0,
-                    .y = 64.0,
+                    .y = 5.0,
                     .z = 0.0,
                     .vx = 0.0,
                     .vy = 0.0,
