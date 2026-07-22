@@ -16,59 +16,118 @@ namespace papermc::core::world {
  */
 class ChunkStreamer {
 public:
+    static void serialize_section(const ChunkSection& section, protocol::ByteBuf& buf) {
+        // 1. Non-air block count: int16_t (Int16BE)
+        buf.write_u16(section.non_air_count());
+
+        // 2. Block States Paletted Container
+        if (section.non_air_count() == 0) {
+            buf.write_u8(0);      // 0 bits per entry
+            buf.write_varint(0);  // Palette value: 0 (minecraft:air)
+            buf.write_varint(0);  // Data array length: 0
+        } else {
+            // Dynamic palette extraction for unique block states in section
+            std::vector<int32_t> palette;
+            palette.push_back(0); // Index 0: Air
+            
+            std::array<uint8_t, 4096> block_palette_indices{};
+            for (int y = 0; y < 16; ++y) {
+                for (int z = 0; z < 16; ++z) {
+                    for (int x = 0; x < 16; ++x) {
+                        auto block_res = section.get_block(x, y, z);
+                        int32_t state_id = block_res ? block_res->state_id : 0;
+                        uint8_t idx = 0;
+                        if (state_id != 0) {
+                            auto it = std::find(palette.begin(), palette.end(), state_id);
+                            if (it != palette.end()) {
+                                idx = static_cast<uint8_t>(std::distance(palette.begin(), it));
+                            } else {
+                                idx = static_cast<uint8_t>(palette.size());
+                                palette.push_back(state_id);
+                            }
+                        }
+                        int block_idx = (y * 256) + (z * 16) + x;
+                        block_palette_indices[block_idx] = idx;
+                    }
+                }
+            }
+
+            if (palette.size() == 1) {
+                // All same block
+                buf.write_u8(0);
+                buf.write_varint(palette[0]);
+                buf.write_varint(0);
+            } else {
+                // Dynamic Bits Per Entry (bpe = 4 to 8)
+                uint8_t bpe = 4;
+                if (palette.size() > 16) bpe = 5;
+                if (palette.size() > 32) bpe = 6;
+                if (palette.size() > 64) bpe = 7;
+                if (palette.size() > 128) bpe = 8;
+
+                buf.write_u8(bpe);
+                buf.write_varint(static_cast<int32_t>(palette.size()));
+                for (int32_t state_id : palette) {
+                    buf.write_varint(state_id);
+                }
+
+                int entries_per_long = 64 / bpe;
+                int num_longs = (4096 + entries_per_long - 1) / entries_per_long;
+                buf.write_varint(num_longs);
+
+                uint64_t current_long = 0;
+                int bits_in_long = 0;
+                for (int i = 0; i < 4096; ++i) {
+                    uint64_t val = block_palette_indices[i] & ((1ULL << bpe) - 1);
+                    current_long |= (val << bits_in_long);
+                    bits_in_long += bpe;
+                    if (bits_in_long + bpe > 64 || i == 4095) {
+                        buf.write_i64(static_cast<int64_t>(current_long));
+                        current_long = 0;
+                        bits_in_long = 0;
+                    }
+                }
+            }
+        }
+
+        // 3. Biomes Paletted Container (Single Value Palette, 0 bits/entry)
+        buf.write_u8(0);      // 0 bits per entry
+        buf.write_varint(0);  // Palette value: 0 (minecraft:plains)
+        buf.write_varint(0);  // Data array length: 0
+    }
+
     static void serialize_chunk_data(const ChunkColumn& chunk, protocol::ByteBuf& buf) {
         buf.write_varint(0x2D); // level_chunk_with_light Packet ID (0x2D / 45 in 26.2 Protocol 776)
         buf.write_i32(chunk.x());
         buf.write_i32(chunk.z());
 
-        // 1. Heightmaps NBT Compound Tag (Empty CompoundTag 0x0A 0x00)
+        // 1. Heightmaps NBT Compound Tag containing MOTION_BLOCKING & WORLD_SURFACE
         buf.write_u8(0x0A); // TAG_Compound
+        
+        // MOTION_BLOCKING
+        buf.write_u8(0x0C); // TAG_Long_Array
+        std::string_view mb_name = "MOTION_BLOCKING";
+        buf.write_u16(static_cast<uint16_t>(mb_name.size()));
+        buf.write_bytes(std::as_bytes(std::span(mb_name)));
+        buf.write_i32(37);   // 37 longs for 256 height values (9 bits per entry)
+        uint64_t mb_long = 0;
+        for (int k = 0; k < 7; ++k) mb_long |= (5ULL << (k * 9)); // height 5 (y=4 grass block)
+        for (int i = 0; i < 37; ++i) buf.write_i64(static_cast<int64_t>(mb_long));
+
+        // WORLD_SURFACE
+        buf.write_u8(0x0C); // TAG_Long_Array
+        std::string_view ws_name = "WORLD_SURFACE";
+        buf.write_u16(static_cast<uint16_t>(ws_name.size()));
+        buf.write_bytes(std::as_bytes(std::span(ws_name)));
+        buf.write_i32(37);
+        for (int i = 0; i < 37; ++i) buf.write_i64(static_cast<int64_t>(mb_long));
+
         buf.write_u8(0x00); // TAG_End
 
         // 2. Serialized Chunk Sections Payload Buffer (24 sections)
         protocol::ByteBuf section_buf(4096);
         for (std::size_t s = 0; s < CHUNK_SECTIONS; ++s) {
-            const auto& section = chunk.get_section(s);
-            
-            // a) Non-air block count: int16_t (Int16BE)
-            section_buf.write_u16(section.non_air_count());
-
-            // b) Block States Paletted Container
-            if (section.non_air_count() == 0) {
-                section_buf.write_u8(0);      // 0 bits per entry
-                section_buf.write_varint(0);  // Palette value: 0 (minecraft:air)
-                section_buf.write_varint(0);  // Data array length: 0
-            } else {
-                // Indirect Palette with 4 bits per entry
-                section_buf.write_u8(4);      // 4 bits per entry
-                section_buf.write_varint(4);  // Palette length = 4 entries
-                section_buf.write_varint(0);  // Palette index 0: Air
-                section_buf.write_varint(85); // Palette index 1: Bedrock
-                section_buf.write_varint(10); // Palette index 2: Dirt
-                section_buf.write_varint(9);  // Palette index 3: Grass Block
-
-                // Data Array: 256 uint64_t longs for 4096 entries (4 bits per entry)
-                section_buf.write_varint(256); // Data array length = 256 longs
-                for (int y_in_sec = 0; y_in_sec < 16; ++y_in_sec) {
-                    uint8_t pal_idx = 0;
-                    if (y_in_sec == 0) pal_idx = 1;        // Height 0: Bedrock
-                    else if (y_in_sec <= 3) pal_idx = 2;   // Height 1..3: Dirt
-                    else if (y_in_sec == 4) pal_idx = 3;   // Height 4: Grass Block
-
-                    uint64_t row_long = 0;
-                    for (int k = 0; k < 16; ++k) {
-                        row_long |= (static_cast<uint64_t>(pal_idx & 0x0F) << (k * 4));
-                    }
-                    for (int r = 0; r < 16; ++r) {
-                        section_buf.write_i64(static_cast<int64_t>(row_long));
-                    }
-                }
-            }
-
-            // c) Biomes Paletted Container (Single Value Palette, 0 bits/entry)
-            section_buf.write_u8(0);      // 0 bits per entry
-            section_buf.write_varint(0);  // Palette value: 0 (minecraft:plains)
-            section_buf.write_varint(0);  // Data array length: 0
+            serialize_section(chunk.get_section(s), section_buf);
         }
 
         auto data_span = section_buf.data_span();
@@ -78,7 +137,7 @@ public:
         // 3. Block Entities Array Count: VarInt = 0
         buf.write_varint(0);
 
-        // 4. Light Data BitSets & Arrays (Protocol 765 format)
+        // 4. Light Data BitSets & Arrays
         buf.write_varint(0); // skyLightMask array count = 0
         buf.write_varint(0); // blockLightMask array count = 0
         buf.write_varint(0); // emptySkyLightMask array count = 0
