@@ -2,6 +2,7 @@
 #define PAPERMC_CORE_PROTOCOL_PACKET_HPP
 
 #include "core/protocol/buffer.hpp"
+#include "core/protocol/generated_registries.hpp"
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -300,82 +301,16 @@ struct UpdateTagsPacket {
   void serialize(ByteBuf &buf) const {
     buf.write_varint(0x0D); // Clientbound 0x0D in CONFIGURATION state
 
-    // 4 Tagged Registries: minecraft:damage_type, minecraft:timeline, minecraft:block, minecraft:banner_pattern
-    buf.write_varint(4);
-
-    // Registry 1: minecraft:damage_type
-    buf.write_string("minecraft:damage_type");
-    std::vector<std::pair<std::string, std::vector<int32_t>>> damage_tags = {
-        {"minecraft:is_fire", {0, 1, 2}},
-        {"minecraft:is_drowning", {4}},
-        {"minecraft:is_freezing", {16}},
-        {"minecraft:is_fall", {7, 8}},
-        {"minecraft:is_explosion", {25}},
-        {"minecraft:is_projectile", {19, 20}},
-        {"minecraft:bypasses_armor", {5, 7, 9, 11, 12, 13, 14, 16}},
-        {"minecraft:bypasses_invulnerability", {9}},
-        {"minecraft:bypasses_shield",
-         {3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 26}},
-        {"minecraft:burns_armor", {0, 1, 2}},
-        {"minecraft:always_hurts_knockback", {21, 22, 23}}};
-
-    buf.write_varint(static_cast<int32_t>(damage_tags.size()));
-    for (const auto &[tag_name, entries] : damage_tags) {
-      buf.write_string(tag_name);
-      buf.write_varint(static_cast<int32_t>(entries.size()));
-      for (int32_t entry_id : entries) {
-        buf.write_varint(entry_id);
-      }
-    }
-
-    // Registry 2: minecraft:timeline
-    buf.write_string("minecraft:timeline");
-    std::vector<std::pair<std::string, std::vector<int32_t>>> timeline_tags = {
-        {"minecraft:in_overworld", {0}}};
-
-    buf.write_varint(static_cast<int32_t>(timeline_tags.size()));
-    for (const auto &[tag_name, entries] : timeline_tags) {
-      buf.write_string(tag_name);
-      buf.write_varint(static_cast<int32_t>(entries.size()));
-      for (int32_t entry_id : entries) {
-        buf.write_varint(entry_id);
-      }
-    }
-
-    // Registry 3: minecraft:block
-    buf.write_string("minecraft:block");
-    std::vector<std::pair<std::string, std::vector<int32_t>>> block_tags = {
-        {"minecraft:infiniburn_overworld", {0}}};
-
-    buf.write_varint(static_cast<int32_t>(block_tags.size()));
-    for (const auto &[tag_name, entries] : block_tags) {
-      buf.write_string(tag_name);
-      buf.write_varint(static_cast<int32_t>(entries.size()));
-      for (int32_t entry_id : entries) {
-        buf.write_varint(entry_id);
-      }
-    }
-
-    // Registry 4: minecraft:banner_pattern
-    buf.write_string("minecraft:banner_pattern");
-    std::vector<std::pair<std::string, std::vector<int32_t>>> banner_pattern_tags = {
-        {"minecraft:pattern_item/flower", {38}},
-        {"minecraft:pattern_item/creeper", {36}},
-        {"minecraft:pattern_item/skull", {37}},
-        {"minecraft:pattern_item/mojang", {39}},
-        {"minecraft:pattern_item/globe", {35}},
-        {"minecraft:pattern_item/piglin", {40}},
-        {"minecraft:pattern_item/flow", {41}},
-        {"minecraft:pattern_item/guster", {42}},
-        {"minecraft:pattern_item/field_masoned", {34}},
-        {"minecraft:pattern_item/bordure_indented", {31}}};
-
-    buf.write_varint(static_cast<int32_t>(banner_pattern_tags.size()));
-    for (const auto &[tag_name, entries] : banner_pattern_tags) {
-      buf.write_string(tag_name);
-      buf.write_varint(static_cast<int32_t>(entries.size()));
-      for (int32_t entry_id : entries) {
-        buf.write_varint(entry_id);
+    buf.write_varint(static_cast<int32_t>(generated::registry_tags.size()));
+    for (const auto& [reg_name, tags] : generated::registry_tags) {
+      buf.write_string(reg_name);
+      buf.write_varint(static_cast<int32_t>(tags.size()));
+      for (const auto& [tag_name, entries] : tags) {
+        buf.write_string(tag_name);
+        buf.write_varint(static_cast<int32_t>(entries.size()));
+        for (int32_t entry_id : entries) {
+          buf.write_varint(entry_id);
+        }
       }
     }
   }
