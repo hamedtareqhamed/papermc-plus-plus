@@ -149,6 +149,17 @@ struct LoginSuccessPacket {
     }
 };
 
+// Select Known Packs Packet (State CONFIGURATION, Clientbound ID 0x0E for 26.2 / Protocol 776)
+struct SelectKnownPacksPacket {
+    void serialize(ByteBuf& buf) const {
+        buf.write_varint(0x0E); // Clientbound 0x0E in CONFIGURATION state
+        buf.write_varint(1);    // 1 pack
+        buf.write_string("minecraft");
+        buf.write_string("core");
+        buf.write_string("26.2");
+    }
+};
+
 // Finish Configuration Packet (State CONFIGURATION, Clientbound ID 0x03 for 26.2 / Protocol 776)
 struct FinishConfigurationPacket {
     void serialize(ByteBuf& buf) const {

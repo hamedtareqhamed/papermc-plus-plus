@@ -78,7 +78,6 @@ private:
     void send_packet_buf(const protocol::ByteBuf& pkt_buf) {
         auto raw_data = pkt_buf.data_span();
 
-        // Extract packet ID for sniffer logging
         protocol::ByteBuf read_buf(raw_data);
         auto pkt_id_res = read_buf.read_varint();
         int32_t pkt_id = pkt_id_res ? *pkt_id_res : -1;
@@ -265,16 +264,22 @@ private:
                 spdlog::info("Login Acknowledged received for player '{}'. Transitioning to CONFIGURATION state...", username_);
                 state_ = protocol::ProtocolState::Configuration;
                 
-                // Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
-                protocol::FinishConfigurationPacket finish_config;
-                send_packet(finish_config);
+                // Send Select Known Packs Packet (Clientbound 0x0E in CONFIGURATION state for 26.2)
+                protocol::SelectKnownPacksPacket known_packs;
+                send_packet(known_packs);
             }
         }
         // STATE 4: CONFIGURATION
         else if (state_ == protocol::ProtocolState::Configuration) {
             if (packet_id == 0x00) { // Client Information
                 spdlog::info("[Network IN] Client information received in CONFIGURATION state for player '{}'", username_);
-            } else if (packet_id == 0x03) { // Acknowledge Finish Configuration (0x03 in CONFIGURATION state)
+            } else if (packet_id == 0x07) { // Serverbound Select Known Packs (0x07 in CONFIGURATION)
+                spdlog::info("[Network IN] Select Known Packs response received from player '{}'. Sending Finish Configuration...", username_);
+                
+                // Send Finish Configuration Packet (Clientbound 0x03 in CONFIGURATION for 26.2)
+                protocol::FinishConfigurationPacket finish_config;
+                send_packet(finish_config);
+            } else if (packet_id == 0x03) { // Acknowledge Finish Configuration (Serverbound 0x03 in CONFIGURATION)
                 spdlog::info("Finish Configuration acknowledged by player '{}'. Transitioning to PLAY state...", username_);
                 state_ = protocol::ProtocolState::Play;
 
