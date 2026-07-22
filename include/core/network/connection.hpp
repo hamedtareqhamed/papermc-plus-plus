@@ -284,13 +284,7 @@ private:
                 protocol::RegistryDataPacket damage_type_registry{
                     .registry_id = "minecraft:damage_type",
                     .entry_ids = {
-                        "minecraft:in_fire", "minecraft:on_fire", "minecraft:lava", "minecraft:in_wall",
-                        "minecraft:drown", "minecraft:starve", "minecraft:cactus", "minecraft:fall",
-                        "minecraft:fly_into_wall", "minecraft:out_of_world", "minecraft:generic", "minecraft:magic",
-                        "minecraft:wither", "minecraft:dragon_breath", "minecraft:dry_out", "minecraft:sweet_berry_bush",
-                        "minecraft:freeze", "minecraft:stalagmite", "minecraft:falling_block", "minecraft:arrow",
-                        "minecraft:fireball", "minecraft:lightning_bolt", "minecraft:mob_attack", "minecraft:player_attack",
-                        "minecraft:thorns", "minecraft:explosion"
+                        "minecraft:arrow", "minecraft:bad_respawn_point", "minecraft:cactus", "minecraft:campfire", "minecraft:cramming", "minecraft:dragon_breath", "minecraft:drown", "minecraft:dry_out", "minecraft:ender_pearl", "minecraft:explosion", "minecraft:fall", "minecraft:falling_anvil", "minecraft:falling_block", "minecraft:falling_stalactite", "minecraft:fireball", "minecraft:fireworks", "minecraft:fly_into_wall", "minecraft:freeze", "minecraft:generic", "minecraft:generic_kill", "minecraft:hot_floor", "minecraft:in_fire", "minecraft:in_wall", "minecraft:indirect_magic", "minecraft:lava", "minecraft:lightning_bolt", "minecraft:mace_smash", "minecraft:magic", "minecraft:mob_attack", "minecraft:mob_attack_no_aggro", "minecraft:on_fire", "minecraft:out_of_world", "minecraft:outside_border", "minecraft:player_attack", "minecraft:player_explosion", "minecraft:sonic_boom", "minecraft:spear", "minecraft:spit", "minecraft:stalagmite", "minecraft:starve", "minecraft:sting", "minecraft:sweet_berry_bush", "minecraft:thorns", "minecraft:thrown", "minecraft:trident", "minecraft:uncredited_damage", "minecraft:wind_charge", "minecraft:wither", "minecraft:wither_skull"
                     },
                     .include_overworld_nbt = false
                 };
