@@ -324,6 +324,9 @@ private:
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
                 send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
 
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_material", .entry_ids = {"minecraft:quartz", "minecraft:iron", "minecraft:netherite", "minecraft:redstone", "minecraft:copper", "minecraft:gold", "minecraft:emerald", "minecraft:diamond", "minecraft:lapis", "minecraft:amethyst", "minecraft:resin"}, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_pattern", .entry_ids = {"minecraft:sentry", "minecraft:dune", "minecraft:coast", "minecraft:wild", "minecraft:ward", "minecraft:eye", "minecraft:vex", "minecraft:tide", "minecraft:snout", "minecraft:rib", "minecraft:spire", "minecraft:wayfinder", "minecraft:raiser", "minecraft:shaper", "minecraft:host", "minecraft:silence", "minecraft:flow", "minecraft:bolt"}, .include_overworld_nbt = false});
+
                 // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;
                 send_packet(tags_pkt);
