@@ -18,6 +18,8 @@
 #include "core/protocol/play_packets.hpp"
 #include "core/protocol/buffer.hpp"
 #include "core/protocol/encryption.hpp"
+#include "core/world/chunk_streamer.hpp"
+#include "core/world/generator.hpp"
 
 namespace papermc::core::network {
 
@@ -322,9 +324,20 @@ private:
                     .flags = 0
                 };
                 send_packet(pos_pkt);
-                start_teleport_confirm_timer();
+                // 3. Send Set Center Chunk (Clientbound 0x59)
+                protocol::SetCenterChunkPacket center_pkt{.chunk_x = 0, .chunk_z = 0};
+                send_packet(center_pkt);
 
-                // 3. Send Game Event Packet (Clientbound 0x26 for 26.2 Protocol 776) -> Start waiting for level chunks
+                // 4. Stream Spawn Chunk Data (Clientbound 0x29 for 26.2)
+                papermc::core::world::ChunkGenerator generator(papermc::core::world::GeneratorType::Flatland);
+                papermc::core::world::ChunkColumn spawn_chunk(0, 0);
+                generator.generate_chunk(spawn_chunk);
+
+                protocol::ByteBuf chunk_buf(16384);
+                papermc::core::world::ChunkStreamer::serialize_chunk_data(spawn_chunk, chunk_buf);
+                send_packet_buf(chunk_buf);
+
+                // 5. Send Game Event Packet (Clientbound 0x26) -> Finish waiting for level chunks
                 protocol::GameEventPacket26_2 game_event{.event_id = 13, .value = 0.0f};
                 send_packet(game_event);
 

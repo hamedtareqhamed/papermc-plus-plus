@@ -17,7 +17,7 @@ namespace papermc::core::world {
 class ChunkStreamer {
 public:
     static void serialize_chunk_data(const ChunkColumn& chunk, protocol::ByteBuf& buf) {
-        buf.write_varint(0x25); // Chunk Data and Light Packet ID (0x25 in Protocol 765 / 1.20.4)
+        buf.write_varint(0x29); // Chunk Data Packet ID (0x29 in 26.2 Protocol 776)
         buf.write_i32(chunk.x());
         buf.write_i32(chunk.z());
 

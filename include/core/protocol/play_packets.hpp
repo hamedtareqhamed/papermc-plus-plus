@@ -130,6 +130,18 @@ struct KeepAliveClientbound26_2 {
     }
 };
 
+// Set Center Chunk Packet (Clientbound 0x59 in PLAY state for 26.2)
+struct SetCenterChunkPacket {
+    int32_t chunk_x{0};
+    int32_t chunk_z{0};
+
+    void serialize(ByteBuf& buf) const {
+        buf.write_varint(0x59);
+        buf.write_varint(chunk_x);
+        buf.write_varint(chunk_z);
+    }
+};
+
 } // namespace papermc::core::protocol
 
 #endif // PAPERMC_CORE_PROTOCOL_PLAY_PACKETS_HPP
