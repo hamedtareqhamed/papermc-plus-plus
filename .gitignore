@@ -1,0 +1,42 @@
+# Build directories
+/build/
+/build-*/
+/cmake-build-*/
+/out/
+/bin/
+
+# Dependency directories
+/deps/
+/_deps/
+
+# Environment and sensitive keys
+.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# C++ Build / Compilation artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+papermc_core
+
+# Logs
+*.log

@@ -1,0 +1,407 @@
+#ifndef PAPERMC_CORE_NETWORK_CONNECTION_HPP
+#define PAPERMC_CORE_NETWORK_CONNECTION_HPP
+
+#include <memory>
+#include <array>
+#include <vector>
+#include <string>
+#include <string_view>
+#include <cstring>
+#include <chrono>
+#include <sstream>
+#include <algorithm>
+#include <asio.hpp>
+#include <spdlog/spdlog.h>
+#include "core/protocol/packet.hpp"
+#include "core/protocol/play_packets.hpp"
+#include "core/protocol/buffer.hpp"
+#include "core/protocol/encryption.hpp"
+#include "core/world/chunk.hpp"
+#include "core/world/generator.hpp"
+#include "core/world/chunk_streamer.hpp"
+
+namespace papermc::core::network {
+
+enum class PlayerLifecycleState : uint8_t {
+    JOINING,
+    SPAWNED_AND_READY
+};
+
+inline std::string to_hex_dump(std::span<const std::byte> bytes, std::size_t max_bytes = 64) {
+    std::stringstream ss;
+    std::size_t count = std::min(bytes.size(), max_bytes);
+    for (std::size_t i = 0; i < count; ++i) {
+        ss << fmt::format("{:02X} ", static_cast<uint8_t>(bytes[i]));
+    }
+    if (bytes.size() > max_bytes) {
+        ss << fmt::format("... ({} total bytes)", bytes.size());
+    }
+    return ss.str();
+}
+
+class ServerConnection : public std::enable_shared_from_this<ServerConnection> {
+public:
+    explicit ServerConnection(asio::ip::tcp::socket socket, bool offline_mode = true)
+        : socket_(std::move(socket)),
+          offline_mode_(offline_mode),
+          keep_alive_timer_(socket_.get_executor()),
+          teleport_confirm_timer_(socket_.get_executor()),
+          last_keep_alive_timestamp_(std::chrono::steady_clock::now()) {}
+
+    ~ServerConnection() {
+        keep_alive_timer_.cancel();
+        teleport_confirm_timer_.cancel();
+    }
+
+    void start() {
+        std::string remote_addr = socket_.remote_endpoint().address().to_string();
+        spdlog::info("Client connected from {}", remote_addr);
+        do_read_packet_length();
+    }
+
+    void close() {
+        keep_alive_timer_.cancel();
+        teleport_confirm_timer_.cancel();
+        asio::error_code ec;
+        socket_.close(ec);
+    }
+
+private:
+    [[nodiscard]] std::string state_to_string() const noexcept {
+        switch (state_) {
+            case protocol::ProtocolState::Handshake: return "HANDSHAKE";
+            case protocol::ProtocolState::Status: return "STATUS";
+            case protocol::ProtocolState::Login: return "LOGIN";
+            case protocol::ProtocolState::Configuration: return "CONFIGURATION";
+            case protocol::ProtocolState::Play: return "PLAY";
+        }
+        return "UNKNOWN";
+    }
+
+    void send_packet_buf(const protocol::ByteBuf& pkt_buf) {
+        auto raw_data = pkt_buf.data_span();
+
+        // Extract packet ID for sniffer logging
+        protocol::ByteBuf read_buf(raw_data);
+        auto pkt_id_res = read_buf.read_varint();
+        int32_t pkt_id = pkt_id_res ? *pkt_id_res : -1;
+
+        std::string state_str = state_to_string();
+        spdlog::info("[Network OUT] Sent Packet ID: 0x{:02X} (Length: {} bytes) in state: {}",
+                     pkt_id, raw_data.size(), state_str);
+
+        if (state_ == protocol::ProtocolState::Play) {
+            spdlog::info("[Network OUT HexDump 0x{:02X}]: {}", pkt_id, to_hex_dump(raw_data));
+        }
+
+        protocol::ByteBuf frame_buf;
+        frame_buf.write_varint(static_cast<int32_t>(raw_data.size()));
+        frame_buf.write_bytes(raw_data);
+
+        auto send_span = frame_buf.data_span();
+        auto out_bytes = std::make_shared<std::vector<uint8_t>>(send_span.size());
+        std::memcpy(out_bytes->data(), send_span.data(), send_span.size());
+
+        auto self(shared_from_this());
+        asio::async_write(
+            socket_,
+            asio::buffer(*out_bytes),
+            [self, out_bytes](asio::error_code ec, std::size_t /*length*/) {
+                if (ec) {
+                    spdlog::warn("Failed sending packet: {}", ec.message());
+                }
+            }
+        );
+    }
+
+    template <typename PacketType>
+    void send_packet(const PacketType& packet) {
+        protocol::ByteBuf pkt_buf;
+        packet.serialize(pkt_buf);
+        send_packet_buf(pkt_buf);
+    }
+
+    void start_keep_alive_timer() {
+        auto self(shared_from_this());
+        keep_alive_timer_.expires_after(std::chrono::seconds(5));
+        keep_alive_timer_.async_wait([this, self](asio::error_code ec) {
+            if (!ec && state_ == protocol::ProtocolState::Play) {
+                int64_t now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()
+                ).count();
+                protocol::KeepAlivePacket keep_alive{.keep_alive_id = now_ms};
+                send_packet(keep_alive);
+                start_keep_alive_timer();
+            }
+        });
+    }
+
+    void start_teleport_confirm_timer() {
+        auto self(shared_from_this());
+        teleport_confirmed_ = false;
+        teleport_confirm_timer_.expires_after(std::chrono::seconds(2));
+        teleport_confirm_timer_.async_wait([this, self](asio::error_code ec) {
+            if (!ec && !teleport_confirmed_ && state_ == protocol::ProtocolState::Play) {
+                spdlog::warn("[DEBUG] Waiting for Client Confirm Teleport packet...");
+            }
+        });
+    }
+
+    void do_read_packet_length() {
+        auto self(shared_from_this());
+        socket_.async_read_some(
+            asio::buffer(read_buffer_.data(), 5),
+            [this, self](asio::error_code ec, std::size_t bytes_transferred) {
+                if (ec) {
+                    if (ec != asio::error::eof) {
+                        spdlog::error("Socket read error: {}", ec.message());
+                    }
+                    return;
+                }
+
+                std::span<const std::byte> span(
+                    reinterpret_cast<const std::byte*>(read_buffer_.data()),
+                    bytes_transferred
+                );
+
+                auto len_res = protocol::decode_varint(span);
+                if (!len_res) {
+                    spdlog::warn("Invalid packet length VarInt received.");
+                    return;
+                }
+
+                std::size_t packet_len = static_cast<std::size_t>(len_res->value);
+                std::size_t header_consumed = len_res->bytes_read;
+
+                do_read_packet_payload(packet_len, header_consumed, bytes_transferred);
+            }
+        );
+    }
+
+    void do_read_packet_payload(std::size_t packet_len, std::size_t header_consumed, std::size_t bytes_transferred) {
+        auto self(shared_from_this());
+        packet_payload_buffer_.resize(packet_len);
+
+        std::size_t initial_bytes = 0;
+        if (bytes_transferred > header_consumed) {
+            initial_bytes = bytes_transferred - header_consumed;
+            std::memcpy(packet_payload_buffer_.data(), read_buffer_.data() + header_consumed, initial_bytes);
+        }
+
+        if (initial_bytes >= packet_len) {
+            process_packet(packet_payload_buffer_);
+            do_read_packet_length();
+            return;
+        }
+
+        asio::async_read(
+            socket_,
+            asio::buffer(packet_payload_buffer_.data() + initial_bytes, packet_len - initial_bytes),
+            [this, self](asio::error_code ec, std::size_t /*bytes_transferred*/) {
+                if (!ec) {
+                    process_packet(packet_payload_buffer_);
+                    do_read_packet_length();
+                } else {
+                    spdlog::warn("Failed reading packet payload: {}", ec.message());
+                }
+            }
+        );
+    }
+
+    void process_packet(const std::vector<uint8_t>& payload) {
+        std::span<const std::byte> span(
+            reinterpret_cast<const std::byte*>(payload.data()),
+            payload.size()
+        );
+        protocol::ByteBuf buf(span);
+
+        auto pkt_id_res = buf.read_varint();
+        if (!pkt_id_res) return;
+
+        int32_t packet_id = *pkt_id_res;
+        
+        // Print real-time incoming packet log in terminal
+        std::string state_str = state_to_string();
+        spdlog::info("[Network IN] Received Packet ID: 0x{:02X} (Length: {} bytes) in state: {}",
+                     packet_id, payload.size(), state_str);
+
+        // STATE 0: HANDSHAKE
+        if (state_ == protocol::ProtocolState::Handshake && packet_id == 0x00) {
+            auto handshake = protocol::HandshakePacket::deserialize(buf);
+            if (handshake) {
+                spdlog::info("Handshake received! Protocol Version: {}, Host: {}:{}, Next State: {}",
+                             handshake->protocol_version, handshake->server_address, handshake->server_port, handshake->next_state);
+                state_ = (handshake->next_state == 1) ? protocol::ProtocolState::Status : protocol::ProtocolState::Login;
+            }
+        }
+        // STATE 1: STATUS
+        else if (state_ == protocol::ProtocolState::Status) {
+            if (packet_id == 0x00) { // Status Request
+                protocol::StatusResponsePacket response{
+                    .json_payload = R"({"version":{"name":"1.20.4","protocol":765},"players":{"max":100,"online":1},"description":{"text":"PaperMC++ C++23 High-Performance Server Engine"}})"
+                };
+                send_packet(response);
+            } else if (packet_id == 0x01) { // Ping Request
+                auto ping = protocol::PingPacket::deserialize(buf);
+                if (ping) {
+                    send_packet(*ping);
+                }
+            }
+        }
+        // STATE 2: LOGIN
+        else if (state_ == protocol::ProtocolState::Login) {
+            if (packet_id == 0x00) { // Login Start
+                auto login_start = protocol::LoginStartPacket::deserialize(buf);
+                if (login_start) {
+                    username_ = login_start->username;
+                    spdlog::info("Login Start received for player '{}' (offline-mode: {})", username_, offline_mode_);
+
+                    if (offline_mode_) {
+                        // Offline mode: Parse 16-byte raw UUID and send 1.20.4 compliant Login Success (ID 0x02)
+                        std::array<uint8_t, 16> uuid_bytes = protocol::parse_uuid_string("00000000-0000-0000-0000-000000000001");
+                        protocol::LoginSuccessPacket login_success{
+                            .uuid = uuid_bytes,
+                            .username = username_
+                        };
+                        send_packet(login_success);
+                    }
+                }
+            } else if (packet_id == 0x03) { // Login Acknowledged (Protocol 765)
+                spdlog::info("Login Acknowledged received for player '{}'. Transitioning to CONFIGURATION state...", username_);
+                state_ = protocol::ProtocolState::Configuration;
+                
+                // Send Finish Configuration Packet (Clientbound 0x02 in CONFIGURATION)
+                protocol::FinishConfigurationPacket finish_config;
+                send_packet(finish_config);
+            }
+        }
+        // STATE 4: CONFIGURATION
+        else if (state_ == protocol::ProtocolState::Configuration) {
+            if (packet_id == 0x00) { // Settings (Client Information in CONFIGURATION state)
+                spdlog::info("[Network IN] Client settings received in CONFIGURATION state for player '{}'", username_);
+            } else if (packet_id == 0x01) { // Custom Payload / Plugin Message in CONFIGURATION state
+                spdlog::info("[Network IN] Custom payload/brand received in CONFIGURATION state for player '{}'", username_);
+            } else if (packet_id == 0x02) { // Finish Configuration Ack (0x02 in CONFIGURATION state)
+                spdlog::info("Finish Configuration acknowledged by player '{}'. Transitioning to PLAY state...", username_);
+                state_ = protocol::ProtocolState::Play;
+
+                // 1. Send Join Game (ID 0x29)
+                protocol::JoinGamePacket join_game;
+                send_packet(join_game);
+
+                // 2. Send Change Difficulty (ID 0x0B in 1.20.4)
+                protocol::ChangeDifficultyPacket diff_pkt{.difficulty = 2, .locked = false};
+                send_packet(diff_pkt);
+
+                // 3. Send Player Abilities (ID 0x34)
+                protocol::PlayerAbilitiesPacket abilities{.flags = 0x06, .flying_speed = 0.05f, .fov_modifier = 0.1f};
+                send_packet(abilities);
+
+                // 4. Send Held Item Slot (ID 0x49)
+                protocol::HeldItemChangePacket held_item{.slot = 0};
+                send_packet(held_item);
+
+                // 5. Send Set Center Chunk (ID 0x52) -> X=0, Z=0
+                protocol::SetCenterChunkPacket center_chunk{.chunk_x = 0, .chunk_z = 0};
+                send_packet(center_chunk);
+
+                // 6. Send Chunk Batch Start (ID 0x0D)
+                protocol::ChunkBatchStartPacket batch_start;
+                send_packet(batch_start);
+
+                // 7. Send Chunk Data and Light (ID 0x25) -> Spawn chunk (0, 0)
+                world::ChunkColumn spawn_chunk(0, 0);
+                world::ChunkGenerator generator(world::GeneratorType::Flatland);
+                generator.generate_chunk(spawn_chunk);
+
+                protocol::ByteBuf chunk_packet_buf;
+                world::ChunkStreamer::serialize_chunk_data(spawn_chunk, chunk_packet_buf);
+                send_packet_buf(chunk_packet_buf);
+
+                // 8. Send Chunk Batch Finished (ID 0x0C) -> batchSize = 1
+                protocol::ChunkBatchFinishedPacket batch_finished{.batch_size = 1};
+                send_packet(batch_finished);
+
+                // 9. Send Default Spawn Position (ID 0x54) -> Pos(0, 64, 0), Angle(0.0f)
+                protocol::SetDefaultSpawnPositionPacket spawn_pos{.x = 0, .y = 64, .z = 0, .angle = 0.0f};
+                send_packet(spawn_pos);
+
+                // 10. Send Synchronize Player Position (ID 0x3E) -> Pos(0.0, 64.0, 0.0), Teleport ID = 1
+                protocol::PlayerPositionAndLookPacket pos_look{
+                    .x = 0.0,
+                    .y = 64.0,
+                    .z = 0.0,
+                    .yaw = 0.0f,
+                    .pitch = 0.0f,
+                    .flags = 0,
+                    .teleport_id = 1
+                };
+                send_packet(pos_look);
+                start_teleport_confirm_timer();
+
+                // 11. Send Game Event (0x20): Start Waiting for Level Chunks (Event 13, Value 0.0f)
+                protocol::GameEventPacket game_event{.event_id = 13, .value = 0.0f};
+                send_packet(game_event);
+
+                // 12. Send Update Health packet (ID 0x5B)
+                protocol::UpdateHealthPacket health_pkt{.health = 20.0f, .food = 20, .food_saturation = 5.0f};
+                send_packet(health_pkt);
+
+                spdlog::info("PLAY state initialization sequence completed for player '{}'!", username_);
+
+                // Start periodic 5-second KeepAlive ticker
+                start_keep_alive_timer();
+            }
+        }
+        // STATE 3: PLAY
+        else if (state_ == protocol::ProtocolState::Play) {
+            if (packet_id == 0x00) { // Teleport Confirm (Serverbound 0x00 in PLAY)
+                auto confirm_tp = protocol::ConfirmTeleportPacket::deserialize(buf);
+                if (confirm_tp) {
+                    teleport_confirmed_ = true;
+                    teleport_confirm_timer_.cancel();
+                    player_lifecycle_ = PlayerLifecycleState::SPAWNED_AND_READY;
+                    spdlog::info("[Network IN] Teleport confirmed by player '{}' for Teleport ID {}. Player State: SPAWNED_AND_READY!",
+                                 username_, confirm_tp->teleport_id);
+                }
+            } else if (packet_id == 0x02) { // Set Difficulty (Serverbound 0x02 in PLAY)
+                auto diff = buf.read_u8();
+                if (diff) {
+                    spdlog::info("[Network IN] Received Set Difficulty from player '{}': {}", username_, *diff);
+                }
+            } else if (packet_id == 0x07) { // Chunk Batch Received (Serverbound 0x07 in PLAY)
+                spdlog::info("[Network IN] Received Chunk Batch Received (0x07) from player '{}'", username_);
+            } else if (packet_id == 0x09) { // Client Information / Settings (Serverbound 0x09 in PLAY)
+                auto client_info = protocol::ClientInformationPacket::deserialize(buf);
+                if (client_info) {
+                    spdlog::info("[Network IN] Received Client Information (0x09) from player '{}': locale={}, viewDistance={}",
+                                 username_, client_info->locale, client_info->view_distance);
+                }
+            } else if (packet_id == 0x15 || packet_id == 0x23) { // Keep Alive Response (Serverbound 0x15 in PLAY)
+                auto keep_alive = protocol::KeepAlivePacket::deserialize(buf);
+                if (keep_alive) {
+                    last_keep_alive_timestamp_ = std::chrono::steady_clock::now();
+                    spdlog::info("[Network IN] Received KeepAlive response (0x15) from player '{}' (ID {})",
+                                 username_, keep_alive->keep_alive_id);
+                }
+            }
+        }
+    }
+
+    asio::ip::tcp::socket socket_;
+    bool offline_mode_{true};
+    protocol::ProtocolState state_{protocol::ProtocolState::Handshake};
+    PlayerLifecycleState player_lifecycle_{PlayerLifecycleState::JOINING};
+    std::string username_;
+    protocol::EncryptionCipher cipher_;
+    asio::steady_timer keep_alive_timer_;
+    asio::steady_timer teleport_confirm_timer_;
+    bool teleport_confirmed_{false};
+    std::chrono::steady_clock::time_point last_keep_alive_timestamp_;
+    std::array<uint8_t, 512> read_buffer_{};
+    std::vector<uint8_t> packet_payload_buffer_;
+};
+
+} // namespace papermc::core::network
+
+#endif // PAPERMC_CORE_NETWORK_CONNECTION_HPP
