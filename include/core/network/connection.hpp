@@ -13,6 +13,7 @@
 #include <asio.hpp>
 #include <spdlog/spdlog.h>
 #include "core/protocol/packet.hpp"
+#include "core/protocol/generated_registries.hpp"
 #include "core/protocol/play_packets.hpp"
 #include "core/protocol/buffer.hpp"
 #include "core/protocol/encryption.hpp"
@@ -281,45 +282,26 @@ private:
                 send_packet(features_pkt);
 
                 // 3. Send Registry Data Packets (Clientbound 0x07 for 26.2)
-                protocol::RegistryDataPacket damage_type_registry{
-                    .registry_id = "minecraft:damage_type",
-                    .entry_ids = {
-                        "minecraft:arrow", "minecraft:bad_respawn_point", "minecraft:cactus", "minecraft:campfire", "minecraft:cramming", "minecraft:dragon_breath", "minecraft:drown", "minecraft:dry_out", "minecraft:ender_pearl", "minecraft:explosion", "minecraft:fall", "minecraft:falling_anvil", "minecraft:falling_block", "minecraft:falling_stalactite", "minecraft:fireball", "minecraft:fireworks", "minecraft:fly_into_wall", "minecraft:freeze", "minecraft:generic", "minecraft:generic_kill", "minecraft:hot_floor", "minecraft:in_fire", "minecraft:in_wall", "minecraft:indirect_magic", "minecraft:lava", "minecraft:lightning_bolt", "minecraft:mace_smash", "minecraft:magic", "minecraft:mob_attack", "minecraft:mob_attack_no_aggro", "minecraft:on_fire", "minecraft:out_of_world", "minecraft:outside_border", "minecraft:player_attack", "minecraft:player_explosion", "minecraft:sonic_boom", "minecraft:spear", "minecraft:spit", "minecraft:stalagmite", "minecraft:starve", "minecraft:sting", "minecraft:sweet_berry_bush", "minecraft:thorns", "minecraft:thrown", "minecraft:trident", "minecraft:uncredited_damage", "minecraft:wind_charge", "minecraft:wither", "minecraft:wither_skull"
-                    },
-                    .include_overworld_nbt = false
-                };
-                send_packet(damage_type_registry);
-
-                protocol::RegistryDataPacket dim_type_registry{
-                    .registry_id = "minecraft:dimension_type",
-                    .entry_ids = {"minecraft:overworld"},
-                    .include_overworld_nbt = true
-                };
-                send_packet(dim_type_registry);
-
-                protocol::RegistryDataPacket biome_registry{
-                    .registry_id = "minecraft:biome",
-                    .entry_ids = {"minecraft:plains"},
-                    .include_overworld_nbt = false
-                };
-                send_packet(biome_registry);
-
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_variant", .entry_ids = {"minecraft:all_black", "minecraft:black", "minecraft:british_shorthair", "minecraft:calico", "minecraft:jellie", "minecraft:persian", "minecraft:ragdoll", "minecraft:red", "minecraft:siamese", "minecraft:tabby", "minecraft:white"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:frog_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:painting_variant", .entry_ids = {"minecraft:kebab"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = {"minecraft:cold", "minecraft:temperate", "minecraft:warm"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = {"minecraft:ashen", "minecraft:black", "minecraft:chestnut", "minecraft:pale", "minecraft:rusty", "minecraft:snowy", "minecraft:spotted", "minecraft:striped", "minecraft:woods"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:zombie_nautilus_variant", .entry_ids = {"minecraft:temperate"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_sound_variant", .entry_ids = {"minecraft:classic"}, .include_overworld_nbt = false});
-
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_material", .entry_ids = {"minecraft:quartz", "minecraft:iron", "minecraft:netherite", "minecraft:redstone", "minecraft:copper", "minecraft:gold", "minecraft:emerald", "minecraft:diamond", "minecraft:lapis", "minecraft:amethyst", "minecraft:resin"}, .include_overworld_nbt = false});
-                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_pattern", .entry_ids = {"minecraft:sentry", "minecraft:dune", "minecraft:coast", "minecraft:wild", "minecraft:ward", "minecraft:eye", "minecraft:vex", "minecraft:tide", "minecraft:snout", "minecraft:rib", "minecraft:spire", "minecraft:wayfinder", "minecraft:raiser", "minecraft:shaper", "minecraft:host", "minecraft:silence", "minecraft:flow", "minecraft:bolt"}, .include_overworld_nbt = false});
+                using namespace papermc::core::protocol::generated;
+                
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:damage_type", .entry_ids = damage_type_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:dimension_type", .entry_ids = dimension_type_entries, .include_overworld_nbt = true});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:biome", .entry_ids = biome_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_variant", .entry_ids = cat_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_variant", .entry_ids = chicken_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_variant", .entry_ids = cow_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:frog_variant", .entry_ids = frog_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:painting_variant", .entry_ids = painting_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_variant", .entry_ids = pig_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_variant", .entry_ids = wolf_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:zombie_nautilus_variant", .entry_ids = zombie_nautilus_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cat_sound_variant", .entry_ids = cat_sound_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:chicken_sound_variant", .entry_ids = chicken_sound_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:cow_sound_variant", .entry_ids = cow_sound_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:pig_sound_variant", .entry_ids = pig_sound_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:wolf_sound_variant", .entry_ids = wolf_sound_variant_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_material", .entry_ids = trim_material_entries, .include_overworld_nbt = false});
+                send_packet(protocol::RegistryDataPacket{.registry_id = "minecraft:trim_pattern", .entry_ids = trim_pattern_entries, .include_overworld_nbt = false});
 
                 // 4. Send Update Tags Packet (Clientbound 0x0D)
                 protocol::UpdateTagsPacket tags_pkt;

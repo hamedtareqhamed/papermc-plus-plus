@@ -54,7 +54,16 @@ set(CORE_SOURCES
     src/network/server.cpp
 )
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated_registries.hpp
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codegen_registries.py
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codegen_registries.py
+    COMMENT "Generating registry headers from JSON..."
+)
+add_custom_target(generate_registries DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/core/protocol/generated_registries.hpp)
+
 add_executable(papermc_plus_plus ${CORE_SOURCES})
+add_dependencies(papermc_plus_plus generate_registries)
 
 # Target Definitions & Links
 target_compile_definitions(papermc_plus_plus PRIVATE ASIO_STANDALONE)
@@ -74,3 +83,4 @@ add_executable(unit_tests tests/test_protocol.cpp src/protocol/buffer.cpp src/wo
 target_compile_definitions(unit_tests PRIVATE ASIO_STANDALONE)
 target_link_libraries(unit_tests PRIVATE spdlog::spdlog Threads::Threads)
 add_test(NAME UnitTests COMMAND unit_tests)
+add_dependencies(unit_tests generate_registries)
