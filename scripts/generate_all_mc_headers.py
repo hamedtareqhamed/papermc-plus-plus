@@ -48,6 +48,14 @@ def generate_headers():
                 if k not in all_registries:
                     all_registries[k] = v
 
+import re
+
+VALID_ID_PATTERN = re.compile(r'^[a-z0-9_.-]+$')
+
+def is_valid_entry(entry_name):
+    path = entry_name.split(':', 1)[-1]
+    return bool(VALID_ID_PATTERN.match(path))
+
     registry_id_map = {}
     
     # Parse all registries
@@ -57,13 +65,16 @@ def generate_headers():
             entries = reg_data["entries"]
             if isinstance(entries, dict):
                 for entry_k, entry_v in entries.items():
+                    if not is_valid_entry(entry_k):
+                        continue
                     if "protocol_id" in entry_v:
                         reg_map[entry_k] = entry_v["protocol_id"]
                     else:
                         reg_map[entry_k] = len(reg_map)
             elif isinstance(entries, list):
                 for i, entry_k in enumerate(entries):
-                    reg_map[entry_k] = i
+                    if is_valid_entry(entry_k):
+                        reg_map[entry_k] = i
         registry_id_map[reg_name] = reg_map
 
     FALLBACK_ENTRIES = {
