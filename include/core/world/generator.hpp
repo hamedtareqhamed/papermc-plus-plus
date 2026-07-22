@@ -21,10 +21,10 @@ public:
         : type_(type) {}
 
     void generate_chunk(ChunkColumn& chunk) const {
-        BlockState bedrock{.state_id = 1};  // Bedrock
-        BlockState dirt{.state_id = 2};     // Dirt
-        BlockState grass{.state_id = 3};    // Grass Block
-        BlockState stone{.state_id = 4};    // Stone
+        BlockState bedrock{.state_id = 85}; // Bedrock
+        BlockState dirt{.state_id = 10};    // Dirt
+        BlockState grass{.state_id = 9};    // Grass Block
+        BlockState stone{.state_id = 1};    // Stone
 
         for (int32_t x = 0; x < 16; ++x) {
             for (int32_t z = 0; z < 16; ++z) {
