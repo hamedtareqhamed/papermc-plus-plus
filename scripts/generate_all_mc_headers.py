@@ -126,15 +126,40 @@ def is_valid_entry(entry_name):
         "",
         "    inline const std::vector<RegistryData> all_registries = {"
     ]
+    DYNAMIC_REGISTRY_NAMES = {
+        "minecraft:damage_type",
+        "minecraft:dimension_type",
+        "minecraft:biome",
+        "minecraft:cat_variant",
+        "minecraft:chicken_variant",
+        "minecraft:cow_variant",
+        "minecraft:frog_variant",
+        "minecraft:painting_variant",
+        "minecraft:pig_variant",
+        "minecraft:wolf_variant",
+        "minecraft:zombie_nautilus_variant",
+        "minecraft:cat_sound_variant",
+        "minecraft:chicken_sound_variant",
+        "minecraft:cow_sound_variant",
+        "minecraft:pig_sound_variant",
+        "minecraft:wolf_sound_variant",
+        "minecraft:trim_material",
+        "minecraft:trim_pattern",
+        "minecraft:jukebox_song",
+        "minecraft:instrument",
+        "minecraft:banner_pattern"
+    }
+
     for reg_name, reg_map in registry_id_map.items():
-        if len(reg_map) == 0: continue
+        if len(reg_map) == 0 or reg_name not in DYNAMIC_REGISTRY_NAMES: continue
         include_nbt = "true" if reg_name == "minecraft:dimension_type" else "false"
         reg_content.append(f"        {{\"{reg_name}\", {{")
         
         # Sort by protocol id
         sorted_entries = sorted(reg_map.items(), key=lambda x: x[1])
         for entry_name, _ in sorted_entries:
-            reg_content.append(f"            \"{entry_name}\",")
+            if is_valid_entry(entry_name):
+                reg_content.append(f"            \"{entry_name}\",")
         reg_content.append(f"        }}, {include_nbt}}},")
 
     reg_content.extend([
